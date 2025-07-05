@@ -1,6 +1,12 @@
 # Recursive Patchwork C++ Implementation
 
+A high-performance C++ implementation of the Recursive Patchwork algorithm for LiDAR point cloud processing.
 
+## Demo
+
+![Recursive Patchwork Demo](result.gif)
+
+*Demo showing ground segmentation and obstacle detection using the Recursive Patchwork algorithm*
 
 ## Features
 
