@@ -35,3 +35,31 @@ for centered data $Q = P - \mu$. Then we take normal vector $n$ as the eigenvect
 ### Optional Dependencies
 - **CUDA** (>= 10.0) - for GPU acceleration. We haven't made this part yet, but it's coming once I get better at CUDA.
 - **ROS2** (>= Humble) - for ROS2 bag file support
+
+
+
+### Usage
+
+Use these commands to build this into a ROS2 package.
+
+```
+# Build (use the magic command in ROOT)
+colcon build --packages-select recursive_patchwork --cmake-args -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++
+
+# Source the workspace
+source install/setup.bash
+
+# Run the node
+ros2 run recursive_patchwork recursive_patchwork_node
+
+# Or use the launch file
+ros2 launch recursive_patchwork recursive_patchwork.launch.py
+
+```
+
+Or use this for a more aggressive but still functional build straight from CMAKE.
+
+```
+d src/recursive_patchwork && rm -rf build/ && mkdir build && cd build && cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ && make -j4
+```
+
