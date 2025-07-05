@@ -50,7 +50,7 @@ private:
     std::unique_ptr<rosbag2_cpp::readers::SequentialReader> reader_;
 #endif
     std::string bag_path_;
-    std::string last_error_;
+    mutable std::string last_error_;
     bool bag_open_;
 
     // Helper functions
