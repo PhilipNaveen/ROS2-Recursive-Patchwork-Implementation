@@ -16,11 +16,11 @@ std::vector<Point3D> generateSyntheticPointCloud(size_t num_points = 10000) {
     std::random_device rd;
     std::mt19937 gen(rd());
     
-    // Ground points (flat surface with some noise)
+    // Ground points
     std::normal_distribution<float> ground_z(0.0f, 0.05f);
     std::uniform_real_distribution<float> ground_xy(-50.0f, 50.0f);
     
-    // Obstacle points (vertical structures)
+    // Obstacles
     std::uniform_real_distribution<float> obstacle_xy(-30.0f, 30.0f);
     std::uniform_real_distribution<float> obstacle_z(0.5f, 3.0f);
     
@@ -37,7 +37,6 @@ std::vector<Point3D> generateSyntheticPointCloud(size_t num_points = 10000) {
         points.push_back(point);
     }
     
-    // Obstacle points (cars, pedestrians, etc.)
     for (size_t i = 0; i < obstacle_count; ++i) {
         Point3D point;
         point.x = obstacle_xy(gen);
@@ -52,11 +51,11 @@ std::vector<Point3D> generateSyntheticPointCloud(size_t num_points = 10000) {
 void testBasicFunctionality() {
     std::cout << "=== Testing Basic Functionality ===" << std::endl;
     
-    // Generate synthetic data
+    // Make the data
     auto points = generateSyntheticPointCloud(5000);
     std::cout << "Generated " << points.size() << " synthetic points" << std::endl;
     
-    // Initialize Recursive Patchwork
+    // Init on patchwork
     PatchworkConfig config;
     config.sensor_height = 1.2f;
     config.filtering_radius = 50.0f;
@@ -65,22 +64,22 @@ void testBasicFunctionality() {
     
     RecursivePatchwork patchwork(config);
     
-    // Test ground segmentation
+
     auto [ground_points, non_ground_points] = patchwork.filterGroundPoints(points);
     
     std::cout << "Ground points: " << ground_points.size() << std::endl;
-    std::cout << "Non-ground points: " << non_ground_points.size() << std::endl;
+    std::cout << "Non ground points: " << non_ground_points.size() << std::endl;
     
-    // Basic assertions
+
     assert(ground_points.size() + non_ground_points.size() <= points.size());
     assert(ground_points.size() > 0);
     assert(non_ground_points.size() > 0);
     
-    std::cout << "✓ Basic functionality test passed" << std::endl;
+    std::cout << "Basic functionality, nothing's horribly broken so far...\n" << std::endl;
 }
 
 void testEnhancedFiltering() {
-    std::cout << "\n=== Testing Enhanced Filtering ===" << std::endl;
+    std::cout << "Testing the filtering: We generate a small point cloud of 3000 points and run the algorithm to \n tally filtered and non ground points. If the filtered point count is 0, there is likely a ROS2 Pcloud util issue." << std::endl;
     
     auto points = generateSyntheticPointCloud(3000);
     
@@ -95,11 +94,11 @@ void testEnhancedFiltering() {
     assert(filtered_points.size() <= points.size());
     assert(filtered_points.size() > 0);
     
-    std::cout << "✓ Enhanced filtering test passed" << std::endl;
+    std::cout << "Filtering test passed\n" << std::endl;
 }
 
 void testPointCloudProcessor() {
-    std::cout << "\n=== Testing Point Cloud Processor ===" << std::endl;
+    std::cout << "Pcloud Processor test..." << std::endl;
     
     auto points = generateSyntheticPointCloud(1000);
     
@@ -115,11 +114,13 @@ void testPointCloudProcessor() {
     auto [pca_centroid, pca_eigenvectors] = PointCloudProcessor::computePCA(points);
     assert(std::isfinite(pca_centroid(0)) && std::isfinite(pca_centroid(1)) && std::isfinite(pca_centroid(2)));
     
-    std::cout << "✓ Point cloud processor test passed" << std::endl;
+    std::cout << "Pcloud processor test passed\n" << std::endl;
 }
 
 void testLidarFusion() {
-    std::cout << "\n=== Testing LiDAR Fusion ===" << std::endl;
+    std::cout << "Lidar fusion test...\n" << std::endl;
+    std::cout << "Initial test is based on IAC Av-2024 racing cars. This vehicle uses 3 Luminar \n SOLID STATE lidars. We have to fuse them manually. Devs @ Cavalier Autonomous have \n a Iris Fusion Node that does this, however we don't in this repo. The pclouds  \n are fused manually since I've memorized the transforms." << std::endl;
+    std::cout << "\n If you are using spinning mechanical lidars, or have rosbags with a VELODYNE topic from sim, the fusion isn't necessary to get the 360 FoV." << std::endl;
     
     auto points1 = generateSyntheticPointCloud(1000);
     auto points2 = generateSyntheticPointCloud(1000);
@@ -139,11 +140,11 @@ void testLidarFusion() {
     auto fused_points = fusion.fuseLidarPointClouds(lidar_clouds);
     assert(fused_points.size() > 0);
     
-    std::cout << "✓ LiDAR fusion test passed" << std::endl;
+    std::cout << "\nLiDAR fusion works!" << std::endl;
 }
 
 void testPerformance() {
-    std::cout << "\n=== Testing Performance ===" << std::endl;
+    std::cout << "\nTesting Performance..." << std::endl;
     
     auto points = generateSyntheticPointCloud(10000);
     
@@ -159,12 +160,12 @@ void testPerformance() {
     std::cout << "Processed " << points.size() << " points in " << duration.count() << " ms" << std::endl;
     std::cout << "Processing rate: " << (points.size() / (duration.count() / 1000.0)) << " points/second" << std::endl;
     
-    std::cout << "✓ Performance test completed" << std::endl;
+    std::cout << "Performance test completed" << std::endl;
 }
 
 int main() {
     std::cout << "Recursive Patchwork C++ Test Suite" << std::endl;
-    std::cout << "==================================" << std::endl;
+    std::cout << "Algorithm & dev by Philip Naveen, testing by Srinivasan Kannan @ UVA computer science." << std::endl;
     
     try {
         testBasicFunctionality();
@@ -173,11 +174,11 @@ int main() {
         testLidarFusion();
         testPerformance();
         
-        std::cout << "\n🎉 All tests passed successfully!" << std::endl;
+        std::cout << "\n All testing passed. Good to go." << std::endl;
         return 0;
         
     } catch (const std::exception& e) {
-        std::cerr << "❌ Test failed with exception: " << e.what() << std::endl;
+        std::cerr << "A test has failed with this exception: " << e.what() << std::endl;
         return 1;
     }
 } 
