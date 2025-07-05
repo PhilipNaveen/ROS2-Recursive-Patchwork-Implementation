@@ -1,14 +1,14 @@
 cmake_minimum_required(VERSION 3.16)
 
-# Enable languages first
+# Declare project first
 project(recursive_patchwork)
+
+# Find ament_cmake
+find_package(ament_cmake REQUIRED)
 
 # Set C++ standard
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
-
-# Find ament_cmake
-find_package(ament_cmake REQUIRED)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
