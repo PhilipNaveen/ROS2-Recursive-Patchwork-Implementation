@@ -36,8 +36,8 @@ Makefile
 *.exe
 *.out
 *.app
-recursive_patchwork
-test_recursive_patchwork
+/recursive_patchwork
+/test_recursive_patchwork
 
 # Debug files
 *.dSYM/
