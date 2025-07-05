@@ -1,4 +1,16 @@
 cmake_minimum_required(VERSION 3.16)
+
+# Optional: ROS2 support (only if available)
+find_package(ament_cmake QUIET)
+if(ament_cmake_FOUND)
+    # Initialize ament_cmake properly
+    ament_cmake_init()
+    message(STATUS "ROS2 support enabled")
+else()
+    message(STATUS "ROS2 support not available - building standalone version")
+    add_definitions(-DSTANDALONE_BUILD)
+endif()
+
 project(recursive_patchwork)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -20,17 +32,12 @@ else()
     message(STATUS "CUDA acceleration not available")
 endif()
 
-# Optional: ROS2 support (only if available)
-find_package(ament_cmake QUIET)
+# Find ROS2 packages if ament_cmake is available
 if(ament_cmake_FOUND)
-    message(STATUS "ROS2 support enabled")
     find_package(rclcpp REQUIRED)
     find_package(sensor_msgs REQUIRED)
     find_package(rosbag2_cpp REQUIRED)
     add_definitions(-DUSE_ROS2)
-else()
-    message(STATUS "ROS2 support not available - building standalone version")
-    add_definitions(-DSTANDALONE_BUILD)
 endif()
 
 # Include directories
@@ -188,4 +195,9 @@ if(ament_cmake_FOUND)
 else()
     message(STATUS "ROS2 support: Disabled (standalone build)")
 endif()
-message(STATUS "==========================================") 
+message(STATUS "==========================================")
+
+# Finalize ament_cmake if it was used
+if(ament_cmake_FOUND)
+    ament_cmake_finalize()
+endif() 
