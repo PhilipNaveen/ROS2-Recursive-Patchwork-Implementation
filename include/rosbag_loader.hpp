@@ -5,12 +5,14 @@
 #include <vector>
 #include <memory>
 
-// ROS2 includes
+// ROS2 includes - only if ROS2 is available
+#ifdef USE_ROS2
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <rosbag2_cpp/readers/sequential_reader.hpp>
 #include <rosbag2_cpp/storage_options.hpp>
 #include <rosbag2_cpp/converter_options.hpp>
+#endif
 
 namespace recursive_patchwork {
 
@@ -44,14 +46,16 @@ public:
     void clearError() { last_error_.clear(); }
 
 private:
+#ifdef USE_ROS2
     std::unique_ptr<rosbag2_cpp::readers::SequentialReader> reader_;
+#endif
     std::string bag_path_;
     std::string last_error_;
     bool bag_open_;
 
     // Helper functions
     bool initializeReader();
-    std::vector<Point3D> convertPointCloud2ToPoints(const sensor_msgs::msg::PointCloud2& msg);
+    std::vector<Point3D> convertPointCloud2ToPoints(const void* msg_data);
     bool seekToMessage(const std::string& topic_name, size_t frame_number);
     
     // MCAP specific functions

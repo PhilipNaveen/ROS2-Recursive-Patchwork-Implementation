@@ -1,0 +1,67 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>recursive_patchwork</name>
+  <version>1.0.0</version>
+  <description>
+    A high-performance C++ implementation of the Recursive Patchwork algorithm 
+    for LiDAR point cloud ground segmentation and obstacle detection.
+    
+    Features:
+    - Advanced ground segmentation using recursive plane fitting
+    - Multi-LiDAR fusion with automatic coordinate transforms
+    - ROS2 integration for bag file processing
+    - Real-time BEV visualization
+    - Optional CUDA acceleration
+  </description>
+  
+  <maintainer email="your-email@example.com">Your Name</maintainer>
+  <license>MIT</license>
+  
+  <url type="website">https://github.com/your-username/recursive-patchwork</url>
+  <url type="bugtracker">https://github.com/your-username/recursive-patchwork/issues</url>
+  <url type="repository">https://github.com/your-username/recursive-patchwork.git</url>
+  
+  <author email="your-email@example.com">Your Name</author>
+  
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  
+  <!-- ROS2 Dependencies -->
+  <depend>rclcpp</depend>
+  <depend>sensor_msgs</depend>
+  <depend>rosbag2_cpp</depend>
+  <depend>rosbag2_storage</depend>
+  <depend>rosidl_typesupport_cpp</depend>
+  
+  <!-- System Dependencies -->
+  <depend>eigen3</depend>
+  <depend>opencv</depend>
+  <depend>pkg-config</depend>
+  
+  <!-- Optional CUDA Support -->
+  <build_depend condition="$ROS_DISTRO == 'humble'">cuda</build_depend>
+  <build_depend condition="$ROS_DISTRO == 'iron'">cuda</build_depend>
+  <build_depend condition="$ROS_DISTRO == 'rolling'">cuda</build_depend>
+  
+  <!-- Export Dependencies -->
+  <export>
+    <build_type>ament_cmake</build_type>
+    
+    <!-- CMake Configuration -->
+    <cmake>
+      <cmake_extra>find_package(Eigen3 REQUIRED)</cmake_extra>
+      <cmake_extra>find_package(OpenCV REQUIRED)</cmake_extra>
+      <cmake_extra>find_package(CUDA QUIET)</cmake_extra>
+    </cmake>
+    
+    <!-- Plugin Configuration -->
+    <plugin_configuration>
+      <plugin name="recursive_patchwork_plugin" 
+              type="recursive_patchwork::RecursivePatchworkPlugin">
+        <description>
+          Recursive Patchwork ground segmentation plugin for ROS2
+        </description>
+      </plugin>
+    </plugin_configuration>
+  </export>
+</package> 
