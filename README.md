@@ -1,12 +1,14 @@
 # Recursive Patchwork C++ Implementation
 
-A high-performance C++ implementation of the Recursive Patchwork algorithm for LiDAR point cloud processing.
-
-## Demo
-
 ![Recursive Patchwork Demo](result.gif)
+*Patchwork, Patchwork++, & Recursive Patchwork vs. raw lidar data from KITTI-360.*
 
-*Demo showing ground segmentation and obstacle detection using the Recursive Patchwork algorithm*
+We are introducing a new set of modifications to patchwork ground segmentation algorithms. Tests on spinning lidar from a car in a domestic driving situation (shown above) showed promise to detect vehicles, and this may improve object detection, tracking, and state estimation in multiagent driving. Further testing from data coming from 3 solid state lidars on a high speed IAC-AV-24 racing car showed promising results as well. 
+
+## Creators
+
+- **Philip Naveen**: Created the algorithm, evaluation, & ROS2 dev.
+- **Srinivasan Kannan**: Code testing, evaluation, & manuscript.
 
 ## Features
 
