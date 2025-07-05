@@ -47,13 +47,6 @@
   <export>
     <build_type>ament_cmake</build_type>
     
-    <!-- CMake Configuration -->
-    <cmake>
-      <cmake_extra>find_package(Eigen3 REQUIRED)</cmake_extra>
-      <cmake_extra>find_package(OpenCV REQUIRED)</cmake_extra>
-      <cmake_extra>find_package(CUDA QUIET)</cmake_extra>
-    </cmake>
-    
     <!-- Plugin Configuration -->
     <plugin_configuration>
       <plugin name="recursive_patchwork_plugin" 

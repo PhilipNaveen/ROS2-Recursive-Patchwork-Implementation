@@ -70,10 +70,10 @@ endif()
 
 # Add ROS2 libraries if available
 if(ament_cmake_FOUND)
-    target_link_libraries(recursive_patchwork
-        rclcpp::rclcpp
-        sensor_msgs::sensor_msgs
-        rosbag2_cpp::rosbag2_cpp
+    ament_target_dependencies(recursive_patchwork
+        rclcpp
+        sensor_msgs
+        rosbag2_cpp
     )
 endif()
 
@@ -109,10 +109,10 @@ endif()
 
 # Add ROS2 libraries to test if available
 if(ament_cmake_FOUND)
-    target_link_libraries(test_recursive_patchwork
-        rclcpp::rclcpp
-        sensor_msgs::sensor_msgs
-        rosbag2_cpp::rosbag2_cpp
+    ament_target_dependencies(test_recursive_patchwork
+        rclcpp
+        sensor_msgs
+        rosbag2_cpp
     )
 endif()
 
