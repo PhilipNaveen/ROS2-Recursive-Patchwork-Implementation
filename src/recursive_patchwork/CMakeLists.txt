@@ -75,6 +75,7 @@ target_link_libraries(recursive_patchwork_node
     ${EIGEN3_LIBRARIES}
     ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
+    recursive_patchwork
 )
 
 if(CUDA_FOUND)
