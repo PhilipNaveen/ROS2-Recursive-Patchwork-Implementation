@@ -1,5 +1,12 @@
 cmake_minimum_required(VERSION 3.16)
 
+# Enable languages first
+project(recursive_patchwork)
+
+# Set C++ standard
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+
 # Find ament_cmake
 find_package(ament_cmake REQUIRED)
 
@@ -28,11 +35,6 @@ find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
 
 add_definitions(-DUSE_ROS2)
-
-project(recursive_patchwork)
-
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include directories
 include_directories(
