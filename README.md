@@ -17,6 +17,22 @@ We are introducing a new set of modifications to patchwork ground segmentation a
 - **Standalone Mode**: Can run without ROS2 for testing and development
 - **Comprehensive Testing**: Simple test suite with synthetic data generation
 
+## Algorithm
+
+Recursive patchwork does segmenting by dividing a point cloud into a polar grid, running PCA, and further dividing the tiles when necessary. Within a radius $R$, the algorithm filters. The points are divided into radial sectors, and within these sectors, seed points are chosen. This is based on their distance from the lidar, and is described by
+
+\begin{equation*}
+    z_{th} = h + \frac{\lambda \bar{d}}{R}
+\end{equation*}
+
+where $\bar{d}$ is the average distance across the patch and $h$ is the lidar height. Then, a PCA plane is fit to these seed points using a centroid $\mu = \Sigma p_i$, and a covariance matrix of
+
+\begin{equation*}
+    C = \frac{1}{n-1} Q^T Q
+\end{equation*}
+
+for centered data $Q = P - \mu$. Then we take normal vector $n$ as the eigenvector that corresponds to the smallest eigenvalue. The algorithm then refines the ground mask by filtering points satisfying $| (p - \mu) \cdot n| < \tau$, where $\tau$ is the threshold to be considered a ground point. $\tau$ gets scaled by distance. If the mean residual error is greater than a threshold, and the patch is of sufficient size, it is split along whichever axis has the higher variance. Then, the plane fitting is applied to each sub patch. This recursive refinement allows the algorithm to adaptively resolve non-planar or cluttered regions without relying on fixed spatial resolution or assumptions of flatness. Further, this allows effectively flat regions of space to be fit with larger planes, as much detail need not be captured there.
+
 ## Dependencies
 
 ### Required Dependencies
