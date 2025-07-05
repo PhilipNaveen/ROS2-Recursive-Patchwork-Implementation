@@ -7,8 +7,8 @@ We are introducing a new set of modifications to patchwork ground segmentation a
 
 ## Creators
 
-- **Philip Naveen**: Created the algorithm, evaluation, & ROS2 dev.
-- **Srinivasan Kannan**: Code testing, evaluation, & manuscript.
+- **Philip Naveen** *(dxj2ut@virginia.edu)*: Created the algorithm, evaluation, & ROS2 dev.
+- **Srinivasan Kannan** *(bff5vw@virginia.edu)*: Code testing, evaluation, & manuscript.
 
 ## Features
 
