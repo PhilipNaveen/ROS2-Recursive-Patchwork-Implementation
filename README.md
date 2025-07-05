@@ -62,6 +62,6 @@ ros2 launch recursive_patchwork recursive_patchwork.launch.py
 Or use this for a more aggressive but still functional build straight from CMAKE.
 
 ```
-d src/recursive_patchwork && rm -rf build/ && mkdir build && cd build && cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ && make -j4
+cd src/recursive_patchwork && rm -rf build/ && mkdir build && cd build && cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ && make -j4
 ```
 
