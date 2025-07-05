@@ -1,8 +1,0 @@
-/home/philip/Recursive-Patchwork/build/CMakeFiles/recursive_patchwork.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/test_recursive_patchwork.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/edit_cache.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/rebuild_cache.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/list_install_components.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/install.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/install/local.dir
-/home/philip/Recursive-Patchwork/build/CMakeFiles/install/strip.dir

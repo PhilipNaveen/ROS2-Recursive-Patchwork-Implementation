@@ -89,6 +89,10 @@ target_compile_options(recursive_patchwork PRIVATE
 # Test executable
 set(TEST_SOURCES
     test/test_recursive_patchwork.cpp
+    src/recursive_patchwork.cpp
+    src/point_cloud_processor.cpp
+    src/lidar_fusion.cpp
+    src/visualization.cpp
 )
 
 add_executable(test_recursive_patchwork ${TEST_SOURCES})

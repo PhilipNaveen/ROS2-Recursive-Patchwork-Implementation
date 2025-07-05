@@ -19,15 +19,29 @@ cv::Mat Visualization::createBEVImage(const std::vector<Point3D>& points,
                                      int width, int height,
                                      float x_min, float y_min,
                                      float x_max, float y_max) {
-    
-    cv::Mat image(height, width, CV_8UC3, background_color_);
+    cv::Mat image(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
     
     if (points.empty()) {
         return image;
     }
     
-    // Draw all points in gray
-    drawPoints(image, points, non_ground_color_, 1.0f);
+    // Calculate scale factors
+    float x_scale = static_cast<float>(width) / (x_max - x_min);
+    float y_scale = static_cast<float>(height) / (y_max - y_min);
+    
+    for (const auto& point : points) {
+        // Transform coordinates to image space
+        int x = static_cast<int>((point.x - x_min) * x_scale);
+        int y = static_cast<int>((point.y - y_min) * y_scale);
+        
+        // Check bounds
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            // Color based on height (blue for low, red for high)
+            int intensity = static_cast<int>(std::min(255.0f, std::max(0.0f, (point.z + 2.0f) * 50.0f)));
+            cv::Vec3b color(intensity, intensity, 255);
+            image.at<cv::Vec3b>(y, x) = color;
+        }
+    }
     
     return image;
 }
@@ -37,17 +51,30 @@ cv::Mat Visualization::createGroundNonGroundImage(const std::vector<Point3D>& gr
                                                  int width, int height,
                                                  float x_min, float y_min,
                                                  float x_max, float y_max) {
+    cv::Mat image(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
     
-    cv::Mat image(height, width, CV_8UC3, background_color_);
+    // Calculate scale factors
+    float x_scale = static_cast<float>(width) / (x_max - x_min);
+    float y_scale = static_cast<float>(height) / (y_max - y_min);
     
     // Draw ground points in green
-    if (!ground_points.empty()) {
-        drawPoints(image, ground_points, ground_color_, 1.0f);
+    for (const auto& point : ground_points) {
+        int x = static_cast<int>((point.x - x_min) * x_scale);
+        int y = static_cast<int>((point.y - y_min) * y_scale);
+        
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            image.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 255, 0); // Green
+        }
     }
     
-    // Draw non-ground points in gray
-    if (!non_ground_points.empty()) {
-        drawPoints(image, non_ground_points, non_ground_color_, 1.0f);
+    // Draw non-ground points in red
+    for (const auto& point : non_ground_points) {
+        int x = static_cast<int>((point.x - x_min) * x_scale);
+        int y = static_cast<int>((point.y - y_min) * y_scale);
+        
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            image.at<cv::Vec3b>(y, x) = cv::Vec3b(0, 0, 255); // Red
+        }
     }
     
     return image;
@@ -57,11 +84,29 @@ cv::Mat Visualization::createEnhancedFilteredImage(const std::vector<Point3D>& f
                                                   int width, int height,
                                                   float x_min, float y_min,
                                                   float x_max, float y_max) {
+    cv::Mat image(height, width, CV_8UC3, cv::Scalar(0, 0, 0));
     
-    cv::Mat image(height, width, CV_8UC3, background_color_);
+    if (filtered_points.empty()) {
+        return image;
+    }
     
-    if (!filtered_points.empty()) {
-        drawPoints(image, filtered_points, filtered_color_, 1.0f);
+    // Calculate scale factors
+    float x_scale = static_cast<float>(width) / (x_max - x_min);
+    float y_scale = static_cast<float>(height) / (y_max - y_min);
+    
+    for (const auto& point : filtered_points) {
+        int x = static_cast<int>((point.x - x_min) * x_scale);
+        int y = static_cast<int>((point.y - y_min) * y_scale);
+        
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+            // Enhanced coloring based on height and intensity
+            int blue = static_cast<int>(std::min(255.0f, std::max(0.0f, (point.z + 2.0f) * 50.0f)));
+            int green = static_cast<int>(std::min(255.0f, std::max(0.0f, 0.5f * 255.0f))); // Default intensity
+            int red = static_cast<int>(std::min(255.0f, std::max(0.0f, (point.z + 1.0f) * 100.0f)));
+            
+            cv::Vec3b color(blue, green, red);
+            image.at<cv::Vec3b>(y, x) = color;
+        }
     }
     
     return image;

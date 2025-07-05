@@ -1,4 +1,7 @@
 #include "recursive_patchwork.hpp"
+#include "point_cloud_processor.hpp"
+#include "lidar_fusion.hpp"
+#include "visualization.hpp"
 #include <iostream>
 #include <random>
 #include <cassert>

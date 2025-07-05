@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <random>
 
 void printUsage(const char* program_name) {
     std::cout << "Usage: " << program_name << " [options]\n"
