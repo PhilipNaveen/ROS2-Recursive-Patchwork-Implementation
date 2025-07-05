@@ -1,8 +1,7 @@
-# Build directories
+# Build directories (ROS2 colcon build artifacts)
 build/
-build-*/
-out/
-cmake-build-*/
+install/
+log/
 
 # CMake generated files
 CMakeCache.txt
@@ -62,7 +61,7 @@ test_recursive_patchwork
 ehthumbs.db
 Thumbs.db
 
-# Generated images and data files
+# Generated images and data files (but keep source images)
 *.png
 *.jpg
 *.jpeg
@@ -75,10 +74,9 @@ Thumbs.db
 *.txt
 !README.md
 !LICENSE
+!package.xml
 
 # ROS2 specific
-install/
-log/
 *.db3
 *.mcap
 
