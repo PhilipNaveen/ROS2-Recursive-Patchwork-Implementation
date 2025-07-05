@@ -3,6 +3,7 @@
 #include "recursive_patchwork.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
+#include <visualization_msgs/msg/marker_array.hpp>
 #include <memory>
 
 namespace recursive_patchwork {
