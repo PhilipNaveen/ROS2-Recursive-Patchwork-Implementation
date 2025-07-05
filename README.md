@@ -43,6 +43,8 @@ for centered data $Q = P - \mu$. Then we take normal vector $n$ as the eigenvect
 Use these commands to build this into a ROS2 package.
 
 ```
+export RMW_IMPLEMENTATION=rmw_fastrtps_cpp
+
 # Build (use the magic command in ROOT)
 colcon build --packages-select recursive_patchwork --cmake-args -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++
 
