@@ -1,14 +1,4 @@
 cmake_minimum_required(VERSION 3.16)
-
-# Optional: ROS2 support (only if available)
-find_package(ament_cmake QUIET)
-if(ament_cmake_FOUND)
-    message(STATUS "ROS2 support enabled")
-else()
-    message(STATUS "ROS2 support not available - building standalone version")
-    add_definitions(-DSTANDALONE_BUILD)
-endif()
-
 project(recursive_patchwork)
 
 set(CMAKE_CXX_STANDARD 17)
@@ -30,12 +20,17 @@ else()
     message(STATUS "CUDA acceleration not available")
 endif()
 
-# Find ROS2 packages if ament_cmake is available
-if(ament_cmake_FOUND)
-    find_package(rclcpp REQUIRED)
-    find_package(sensor_msgs REQUIRED)
-    find_package(rosbag2_cpp REQUIRED)
+# Optional: ROS2 support (only if available)
+find_package(rclcpp QUIET)
+find_package(sensor_msgs QUIET)
+find_package(rosbag2_cpp QUIET)
+
+if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
+    message(STATUS "ROS2 support enabled")
     add_definitions(-DUSE_ROS2)
+else()
+    message(STATUS "ROS2 support not available - building standalone version")
+    add_definitions(-DSTANDALONE_BUILD)
 endif()
 
 # Include directories
@@ -54,7 +49,7 @@ set(SOURCES
 )
 
 # Add ROS2-specific sources only if ROS2 is available
-if(ament_cmake_FOUND)
+if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
     list(APPEND SOURCES src/rosbag_loader.cpp)
 endif()
 
@@ -74,11 +69,16 @@ if(CUDA_FOUND)
 endif()
 
 # Add ROS2 libraries if available
-if(ament_cmake_FOUND)
-    ament_target_dependencies(recursive_patchwork
-        rclcpp
-        sensor_msgs
-        rosbag2_cpp
+if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
+    target_link_libraries(recursive_patchwork
+        ${rclcpp_LIBRARIES}
+        ${sensor_msgs_LIBRARIES}
+        ${rosbag2_cpp_LIBRARIES}
+    )
+    target_include_directories(recursive_patchwork PRIVATE
+        ${rclcpp_INCLUDE_DIRS}
+        ${sensor_msgs_INCLUDE_DIRS}
+        ${rosbag2_cpp_INCLUDE_DIRS}
     )
 endif()
 
@@ -113,11 +113,16 @@ if(CUDA_FOUND)
 endif()
 
 # Add ROS2 libraries to test if available
-if(ament_cmake_FOUND)
-    ament_target_dependencies(test_recursive_patchwork
-        rclcpp
-        sensor_msgs
-        rosbag2_cpp
+if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
+    target_link_libraries(test_recursive_patchwork
+        ${rclcpp_LIBRARIES}
+        ${sensor_msgs_LIBRARIES}
+        ${rosbag2_cpp_LIBRARIES}
+    )
+    target_include_directories(test_recursive_patchwork PRIVATE
+        ${rclcpp_INCLUDE_DIRS}
+        ${sensor_msgs_INCLUDE_DIRS}
+        ${rosbag2_cpp_INCLUDE_DIRS}
     )
 endif()
 
@@ -129,56 +134,22 @@ target_compile_options(test_recursive_patchwork PRIVATE
     -g
 )
 
-# Install targets (only if not using ament_cmake)
-if(NOT ament_cmake_FOUND)
-    install(TARGETS recursive_patchwork test_recursive_patchwork
-        RUNTIME DESTINATION bin
-    )
-    
-    # Install headers
-    install(DIRECTORY include/
-        DESTINATION include/${PROJECT_NAME}
-        FILES_MATCHING PATTERN "*.hpp"
-    )
-else()
-    # ROS2-style installation
-    install(TARGETS recursive_patchwork test_recursive_patchwork
-        RUNTIME DESTINATION lib/${PROJECT_NAME}
-    )
-    
-    # Install headers
-    install(DIRECTORY include/
-        DESTINATION include/${PROJECT_NAME}
-        FILES_MATCHING PATTERN "*.hpp"
-    )
-    
-    # Install launch files and configs
-    install(DIRECTORY launch config
-        DESTINATION share/${PROJECT_NAME}
-        OPTIONAL
-    )
-    
-    # Export dependencies
-    ament_export_include_directories(include)
-    ament_export_libraries(recursive_patchwork)
-    ament_export_dependencies(
-        rclcpp
-        sensor_msgs
-        rosbag2_cpp
-        Eigen3
-        OpenCV
-    )
-    
-    # Enable testing
-    if(BUILD_TESTING)
-        find_package(ament_lint_auto REQUIRED)
-        ament_lint_auto_find_test_dependencies()
-        
-        # Add test
-        add_test(NAME test_recursive_patchwork
-                 COMMAND test_recursive_patchwork)
-    endif()
-endif()
+# Install targets
+install(TARGETS recursive_patchwork test_recursive_patchwork
+    RUNTIME DESTINATION bin
+)
+
+# Install headers
+install(DIRECTORY include/
+    DESTINATION include/${PROJECT_NAME}
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+# Install launch files and configs if they exist
+install(DIRECTORY launch config
+    DESTINATION share/${PROJECT_NAME}
+    OPTIONAL
+)
 
 # Print configuration summary
 message(STATUS "=== Recursive Patchwork Configuration ===")
@@ -187,7 +158,7 @@ message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "CUDA support: ${CUDA_FOUND}")
 message(STATUS "Eigen3 version: ${EIGEN3_VERSION}")
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-if(ament_cmake_FOUND)
+if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
     message(STATUS "ROS2 support: Enabled")
     message(STATUS "ROS2: ${rclcpp_VERSION}")
 else()
