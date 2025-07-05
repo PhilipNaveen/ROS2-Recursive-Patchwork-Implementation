@@ -140,7 +140,7 @@ std::vector<Point3D> RosbagLoader::loadPointCloud(const std::string& topic_name,
                 return {};
             }
             
-            points = convertPointCloud2ToPoints(message->serialized_data.data());
+            points = convertPointCloud2ToPoints(message->serialized_data.get());
         }
         
         return points;
@@ -286,15 +286,21 @@ bool RosbagLoader::seekToMessage(const std::string& topic_name, size_t frame_num
 }
 
 bool RosbagLoader::loadMCAPPointCloud(const std::string& topic_name, size_t frame_number, std::vector<Point3D>& points) {
-    // MCAP-specific loading logic would go here
-    // For now, fall back to generic approach
-    return seekToMessage(topic_name, frame_number);
+    (void)topic_name;
+    (void)frame_number;
+    (void)points;
+    // TODO: Implement MCAP-specific loading
+    last_error_ = "MCAP loading not yet implemented";
+    return false;
 }
 
 bool RosbagLoader::loadDB3PointCloud(const std::string& topic_name, size_t frame_number, std::vector<Point3D>& points) {
-    // DB3-specific loading logic would go here
-    // For now, fall back to generic approach
-    return seekToMessage(topic_name, frame_number);
+    (void)topic_name;
+    (void)frame_number;
+    (void)points;
+    // TODO: Implement DB3-specific loading
+    last_error_ = "DB3 loading not yet implemented";
+    return false;
 }
 
 } // namespace recursive_patchwork 
