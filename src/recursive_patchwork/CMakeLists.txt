@@ -1,8 +1,7 @@
 cmake_minimum_required(VERSION 3.16)
-project(recursive_patchwork)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# Find ament_cmake
+find_package(ament_cmake REQUIRED)
 
 # Find required packages
 find_package(PkgConfig REQUIRED)
@@ -20,18 +19,20 @@ else()
     message(STATUS "CUDA acceleration not available")
 endif()
 
-# Optional: ROS2 support (only if available)
-find_package(rclcpp QUIET)
-find_package(sensor_msgs QUIET)
-find_package(rosbag2_cpp QUIET)
+# Find ROS2 packages
+find_package(rclcpp REQUIRED)
+find_package(sensor_msgs REQUIRED)
+find_package(rosbag2_cpp REQUIRED)
+find_package(visualization_msgs REQUIRED)
+find_package(pcl_conversions REQUIRED)
+find_package(PCL REQUIRED)
 
-if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
-    message(STATUS "ROS2 support enabled")
-    add_definitions(-DUSE_ROS2)
-else()
-    message(STATUS "ROS2 support not available - building standalone version")
-    add_definitions(-DSTANDALONE_BUILD)
-endif()
+add_definitions(-DUSE_ROS2)
+
+project(recursive_patchwork)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Include directories
 include_directories(
@@ -46,17 +47,16 @@ set(SOURCES
     src/point_cloud_processor.cpp
     src/lidar_fusion.cpp
     src/visualization.cpp
+    src/rosbag_loader.cpp
+    src/recursive_patchwork_node.cpp
+    src/main.cpp
 )
-
-# Add ROS2-specific sources only if ROS2 is available
-if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
-    list(APPEND SOURCES src/rosbag_loader.cpp)
-endif()
-
-list(APPEND SOURCES src/main.cpp)
 
 # Create main executable
 add_executable(recursive_patchwork ${SOURCES})
+
+# Create ROS2 node executable
+add_executable(recursive_patchwork_node src/recursive_patchwork_node.cpp)
 
 # Link libraries for main executable
 target_link_libraries(recursive_patchwork
@@ -68,22 +68,37 @@ if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork ${CUDA_LIBRARIES})
 endif()
 
-# Add ROS2 libraries if available
-if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
-    target_link_libraries(recursive_patchwork
-        ${rclcpp_LIBRARIES}
-        ${sensor_msgs_LIBRARIES}
-        ${rosbag2_cpp_LIBRARIES}
-    )
-    target_include_directories(recursive_patchwork PRIVATE
-        ${rclcpp_INCLUDE_DIRS}
-        ${sensor_msgs_INCLUDE_DIRS}
-        ${rosbag2_cpp_INCLUDE_DIRS}
-    )
+# Link libraries for ROS2 node executable
+target_link_libraries(recursive_patchwork_node
+    ${EIGEN3_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${PCL_LIBRARIES}
+)
+
+if(CUDA_FOUND)
+    target_link_libraries(recursive_patchwork_node ${CUDA_LIBRARIES})
 endif()
+
+# Add ROS2 dependencies using ament_target_dependencies
+ament_target_dependencies(recursive_patchwork_node
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+    visualization_msgs
+    pcl_conversions
+)
 
 # Compiler flags for main executable
 target_compile_options(recursive_patchwork PRIVATE
+    -O3
+    -march=native
+    -ffast-math
+    -Wall
+    -Wextra
+)
+
+# Compiler flags for ROS2 node executable
+target_compile_options(recursive_patchwork_node PRIVATE
     -O3
     -march=native
     -ffast-math
@@ -112,19 +127,12 @@ if(CUDA_FOUND)
     target_link_libraries(test_recursive_patchwork ${CUDA_LIBRARIES})
 endif()
 
-# Add ROS2 libraries to test if available
-if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
-    target_link_libraries(test_recursive_patchwork
-        ${rclcpp_LIBRARIES}
-        ${sensor_msgs_LIBRARIES}
-        ${rosbag2_cpp_LIBRARIES}
-    )
-    target_include_directories(test_recursive_patchwork PRIVATE
-        ${rclcpp_INCLUDE_DIRS}
-        ${sensor_msgs_INCLUDE_DIRS}
-        ${rosbag2_cpp_INCLUDE_DIRS}
-    )
-endif()
+# Add ROS2 libraries to test
+ament_target_dependencies(test_recursive_patchwork
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+)
 
 # Compiler flags for test executable
 target_compile_options(test_recursive_patchwork PRIVATE
@@ -135,8 +143,11 @@ target_compile_options(test_recursive_patchwork PRIVATE
 )
 
 # Install targets
-install(TARGETS recursive_patchwork test_recursive_patchwork
-    RUNTIME DESTINATION bin
+install(TARGETS 
+    recursive_patchwork 
+    recursive_patchwork_node
+    test_recursive_patchwork
+    RUNTIME DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install headers
@@ -145,11 +156,34 @@ install(DIRECTORY include/
     FILES_MATCHING PATTERN "*.hpp"
 )
 
-# Install launch files and configs if they exist
+# Install launch files
 install(DIRECTORY launch config
     DESTINATION share/${PROJECT_NAME}
     OPTIONAL
 )
+
+# Export dependencies
+ament_export_include_directories(include)
+ament_export_libraries(recursive_patchwork recursive_patchwork_node)
+ament_export_dependencies(
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+    visualization_msgs
+    pcl_conversions
+    Eigen3
+    OpenCV
+)
+
+# Enable testing
+if(BUILD_TESTING)
+    find_package(ament_lint_auto REQUIRED)
+    ament_lint_auto_find_test_dependencies()
+    
+    # Add test
+    add_test(NAME test_recursive_patchwork
+             COMMAND test_recursive_patchwork)
+endif()
 
 # Print configuration summary
 message(STATUS "=== Recursive Patchwork Configuration ===")
@@ -158,10 +192,8 @@ message(STATUS "C++ standard: ${CMAKE_CXX_STANDARD}")
 message(STATUS "CUDA support: ${CUDA_FOUND}")
 message(STATUS "Eigen3 version: ${EIGEN3_VERSION}")
 message(STATUS "OpenCV version: ${OpenCV_VERSION}")
-if(rclcpp_FOUND AND sensor_msgs_FOUND AND rosbag2_cpp_FOUND)
-    message(STATUS "ROS2 support: Enabled")
-    message(STATUS "ROS2: ${rclcpp_VERSION}")
-else()
-    message(STATUS "ROS2 support: Disabled (standalone build)")
-endif()
-message(STATUS "==========================================") 
+message(STATUS "ROS2 support: Enabled")
+message(STATUS "ROS2: ${rclcpp_VERSION}")
+message(STATUS "==========================================")
+
+ament_package() 
