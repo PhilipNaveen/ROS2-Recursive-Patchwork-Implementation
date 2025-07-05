@@ -43,39 +43,66 @@ include_directories(
     ${OpenCV_INCLUDE_DIRS}
 )
 
-# Source files
-set(SOURCES
+# Source files for the library
+set(LIBRARY_SOURCES
     src/recursive_patchwork.cpp
     src/point_cloud_processor.cpp
     src/lidar_fusion.cpp
     src/visualization.cpp
     src/rosbag_loader.cpp
-    src/recursive_patchwork_node.cpp
+)
+
+# Create library
+add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
+
+# Link libraries for the library
+target_link_libraries(recursive_patchwork_lib
+    ${EIGEN3_LIBRARIES}
+    ${OpenCV_LIBS}
+)
+
+if(CUDA_FOUND)
+    target_link_libraries(recursive_patchwork_lib ${CUDA_LIBRARIES})
+endif()
+
+# Add ROS2 dependencies to the library
+ament_target_dependencies(recursive_patchwork_lib
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+)
+
+# Compiler flags for the library
+target_compile_options(recursive_patchwork_lib PRIVATE
+    -O3
+    -march=native
+    -ffast-math
+    -Wall
+    -Wextra
+)
+
+# Source files for main executable
+set(MAIN_SOURCES
     src/main.cpp
 )
 
 # Create main executable
-add_executable(recursive_patchwork ${SOURCES})
+add_executable(recursive_patchwork ${MAIN_SOURCES})
 
 # Create ROS2 node executable
 add_executable(recursive_patchwork_node src/recursive_patchwork_node.cpp)
 
 # Link libraries for main executable
 target_link_libraries(recursive_patchwork
-    ${EIGEN3_LIBRARIES}
-    ${OpenCV_LIBS}
+    recursive_patchwork_lib
 )
-
-if(CUDA_FOUND)
-    target_link_libraries(recursive_patchwork ${CUDA_LIBRARIES})
-endif()
 
 # Link libraries for ROS2 node executable
 target_link_libraries(recursive_patchwork_node
     ${EIGEN3_LIBRARIES}
     ${OpenCV_LIBS}
     ${PCL_LIBRARIES}
-    recursive_patchwork
+    recursive_patchwork_lib
 )
 
 if(CUDA_FOUND)
@@ -83,12 +110,6 @@ if(CUDA_FOUND)
 endif()
 
 # Add ROS2 dependencies using ament_target_dependencies
-ament_target_dependencies(recursive_patchwork
-    rclcpp
-    sensor_msgs
-    rosbag2_cpp
-)
-
 ament_target_dependencies(recursive_patchwork_node
     rclcpp
     sensor_msgs
@@ -153,10 +174,13 @@ target_compile_options(test_recursive_patchwork PRIVATE
 
 # Install targets
 install(TARGETS 
+    recursive_patchwork_lib
     recursive_patchwork 
     recursive_patchwork_node
     test_recursive_patchwork
     RUNTIME DESTINATION lib/${PROJECT_NAME}
+    LIBRARY DESTINATION lib/${PROJECT_NAME}
+    ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install headers
@@ -173,7 +197,7 @@ install(DIRECTORY launch config
 
 # Export dependencies
 ament_export_include_directories(include)
-ament_export_libraries(recursive_patchwork recursive_patchwork_node)
+ament_export_libraries(recursive_patchwork_lib)
 ament_export_dependencies(
     rclcpp
     sensor_msgs
