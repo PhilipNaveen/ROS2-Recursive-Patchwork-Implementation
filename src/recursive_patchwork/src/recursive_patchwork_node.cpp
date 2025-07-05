@@ -32,9 +32,12 @@ RecursivePatchworkNode::RecursivePatchworkNode()
     distance_threshold_ = this->get_parameter("distance_threshold").as_double();
     angle_threshold_ = this->get_parameter("angle_threshold").as_double();
     
-    // Initialize the patchwork processor
-    processor_ = std::make_unique<PointCloudProcessor>(
-        min_points_, max_iterations_, distance_threshold_, angle_threshold_);
+    // Initialize the patchwork processor with configuration
+    PatchworkConfig config;
+    config.max_iter = max_iterations_;
+    config.th_dist = distance_threshold_;
+    config.th_seeds = angle_threshold_;
+    processor_ = std::make_unique<RecursivePatchwork>(config);
     
     // Create subscribers
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
@@ -85,10 +88,10 @@ void RecursivePatchworkNode::pointCloudCallback(
         }
         
         // Process with patchwork algorithm
-        auto result = processor_->processPointCloud(points);
+        auto [ground_points, obstacle_points] = processor_->filterGroundPoints(points);
         
         // Convert results back to ROS messages
-        publishResults(result, msg->header);
+        publishResults(ground_points, obstacle_points, msg->header);
         
         auto end_time = this->now();
         auto duration = end_time - start_time;
@@ -96,8 +99,8 @@ void RecursivePatchworkNode::pointCloudCallback(
         RCLCPP_DEBUG(this->get_logger(), 
             "Processed in %ld ms: %zu ground, %zu obstacles", 
             duration.nanoseconds() / 1000000,
-            result.ground_points.size(),
-            result.obstacle_points.size());
+            ground_points.size(),
+            obstacle_points.size());
             
     } catch (const std::exception& e) {
         RCLCPP_ERROR(this->get_logger(), "Error processing point cloud: %s", e.what());
@@ -105,15 +108,16 @@ void RecursivePatchworkNode::pointCloudCallback(
 }
 
 void RecursivePatchworkNode::publishResults(
-    const ProcessingResult& result, 
+    const std::vector<Point3D>& ground_points,
+    const std::vector<Point3D>& obstacle_points,
     const std_msgs::msg::Header& header) {
     
     // Publish ground points
-    if (!result.ground_points.empty()) {
+    if (!ground_points.empty()) {
         pcl::PointCloud<pcl::PointXYZ>::Ptr ground_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        ground_cloud->reserve(result.ground_points.size());
+        ground_cloud->reserve(ground_points.size());
         
-        for (const auto& point : result.ground_points) {
+        for (const auto& point : ground_points) {
             pcl::PointXYZ pcl_point;
             pcl_point.x = point.x;
             pcl_point.y = point.y;
@@ -129,11 +133,11 @@ void RecursivePatchworkNode::publishResults(
     }
     
     // Publish obstacle points
-    if (!result.obstacle_points.empty()) {
+    if (!obstacle_points.empty()) {
         pcl::PointCloud<pcl::PointXYZ>::Ptr obstacle_cloud(new pcl::PointCloud<pcl::PointXYZ>);
-        obstacle_cloud->reserve(result.obstacle_points.size());
+        obstacle_cloud->reserve(obstacle_points.size());
         
-        for (const auto& point : result.obstacle_points) {
+        for (const auto& point : obstacle_points) {
             pcl::PointXYZ pcl_point;
             pcl_point.x = point.x;
             pcl_point.y = point.y;
@@ -149,77 +153,67 @@ void RecursivePatchworkNode::publishResults(
     }
     
     // Publish visualization markers
-    publishVisualization(result, header);
+    publishVisualization(ground_points, obstacle_points, header);
 }
 
 void RecursivePatchworkNode::publishVisualization(
-    const ProcessingResult& result, 
+    const std::vector<Point3D>& ground_points,
+    const std::vector<Point3D>& obstacle_points,
     const std_msgs::msg::Header& header) {
     
     visualization_msgs::msg::MarkerArray marker_array;
     
-    // Create ground plane markers
-    for (size_t i = 0; i < result.ground_planes.size(); ++i) {
-        const auto& plane = result.ground_planes[i];
-        
+    // Create ground points markers (simplified - just show point count)
+    if (!ground_points.empty()) {
         visualization_msgs::msg::Marker marker;
         marker.header = header;
-        marker.ns = "ground_planes";
-        marker.id = i;
-        marker.type = visualization_msgs::msg::Marker::CUBE;
+        marker.ns = "ground_summary";
+        marker.id = 0;
+        marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
         marker.action = visualization_msgs::msg::Marker::ADD;
         
-        // Position at plane center
-        marker.pose.position.x = plane.center.x;
-        marker.pose.position.y = plane.center.y;
-        marker.pose.position.z = plane.center.z;
-        
-        // Orientation based on normal
-        // This is a simplified approach - you might want more sophisticated orientation calculation
+        // Position at origin
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 2;
         marker.pose.orientation.w = 1.0;
         
-        // Scale based on plane size
-        marker.scale.x = plane.size_x;
-        marker.scale.y = plane.size_y;
-        marker.scale.z = 0.1; // Thin plane
+        marker.scale.z = 0.5; // Text size
         
         // Color: green for ground
         marker.color.r = 0.0;
         marker.color.g = 1.0;
         marker.color.b = 0.0;
-        marker.color.a = 0.5;
+        marker.color.a = 1.0;
         
+        marker.text = "Ground: " + std::to_string(ground_points.size()) + " points";
         marker_array.markers.push_back(marker);
     }
     
-    // Create obstacle markers
-    for (size_t i = 0; i < result.obstacle_clusters.size(); ++i) {
-        const auto& cluster = result.obstacle_clusters[i];
-        
+    // Create obstacle points markers
+    if (!obstacle_points.empty()) {
         visualization_msgs::msg::Marker marker;
         marker.header = header;
-        marker.ns = "obstacles";
-        marker.id = i;
-        marker.type = visualization_msgs::msg::Marker::SPHERE;
+        marker.ns = "obstacles_summary";
+        marker.id = 1;
+        marker.type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
         marker.action = visualization_msgs::msg::Marker::ADD;
         
-        // Position at cluster center
-        marker.pose.position.x = cluster.center.x;
-        marker.pose.position.y = cluster.center.y;
-        marker.pose.position.z = cluster.center.z;
+        // Position at origin
+        marker.pose.position.x = 0;
+        marker.pose.position.y = 0;
+        marker.pose.position.z = 1.5;
         marker.pose.orientation.w = 1.0;
         
-        // Scale based on cluster size
-        marker.scale.x = cluster.radius * 2;
-        marker.scale.y = cluster.radius * 2;
-        marker.scale.z = cluster.radius * 2;
+        marker.scale.z = 0.5; // Text size
         
         // Color: red for obstacles
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
-        marker.color.a = 0.7;
+        marker.color.a = 1.0;
         
+        marker.text = "Obstacles: " + std::to_string(obstacle_points.size()) + " points";
         marker_array.markers.push_back(marker);
     }
     

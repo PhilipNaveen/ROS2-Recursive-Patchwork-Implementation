@@ -82,6 +82,12 @@ if(CUDA_FOUND)
 endif()
 
 # Add ROS2 dependencies using ament_target_dependencies
+ament_target_dependencies(recursive_patchwork
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+)
+
 ament_target_dependencies(recursive_patchwork_node
     rclcpp
     sensor_msgs

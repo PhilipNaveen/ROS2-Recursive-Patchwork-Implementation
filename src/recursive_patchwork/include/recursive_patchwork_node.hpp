@@ -1,7 +1,6 @@
 #pragma once
 
 #include "recursive_patchwork.hpp"
-#include "point_cloud_processor.hpp"
 #include <rclcpp/rclcpp.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
@@ -18,10 +17,14 @@ private:
     void pointCloudCallback(const sensor_msgs::msg::PointCloud2::SharedPtr msg);
     
     // Publish processing results
-    void publishResults(const ProcessingResult& result, const std_msgs::msg::Header& header);
+    void publishResults(const std::vector<Point3D>& ground_points, 
+                       const std::vector<Point3D>& obstacle_points, 
+                       const std_msgs::msg::Header& header);
     
     // Publish visualization markers
-    void publishVisualization(const ProcessingResult& result, const std_msgs::msg::Header& header);
+    void publishVisualization(const std::vector<Point3D>& ground_points,
+                             const std::vector<Point3D>& obstacle_points,
+                             const std_msgs::msg::Header& header);
     
     // Parameters
     std::string input_topic_;
@@ -34,7 +37,7 @@ private:
     double angle_threshold_;
     
     // Core processor
-    std::unique_ptr<PointCloudProcessor> processor_;
+    std::unique_ptr<RecursivePatchwork> processor_;
     
     // ROS2 interfaces
     rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr point_cloud_sub_;
