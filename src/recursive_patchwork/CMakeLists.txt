@@ -86,17 +86,9 @@ set(LIBRARY_SOURCES
     src/rosbag_loader.cpp
 )
 
-# Create CUDA kernels library first if CUDA is available
+# Add CUDA sources to the main library if CUDA is available
 if(CUDA_FOUND)
-    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
-    set_target_properties(cuda_kernels_lib PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-    )
-    
-    # Link CUDA kernels library with CUDA libraries
-    target_link_libraries(cuda_kernels_lib
-        ${CUDA_LIBRARIES}
-    )
+    list(APPEND LIBRARY_SOURCES ${CUDA_KERNEL_SOURCES})
 endif()
 
 # Create library
@@ -111,7 +103,6 @@ target_link_libraries(recursive_patchwork_lib
 if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork_lib 
         ${CUDA_LIBRARIES}
-        cuda_kernels_lib
     )
 endif()
 
@@ -270,15 +261,6 @@ install(TARGETS
     LIBRARY DESTINATION lib/${PROJECT_NAME}
     ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
-
-if(CUDA_FOUND)
-    install(TARGETS 
-        cuda_kernels_lib
-        RUNTIME DESTINATION lib/${PROJECT_NAME}
-        LIBRARY DESTINATION lib/${PROJECT_NAME}
-        ARCHIVE DESTINATION lib/${PROJECT_NAME}
-    )
-endif()
 
 # Install headers
 install(DIRECTORY include/
