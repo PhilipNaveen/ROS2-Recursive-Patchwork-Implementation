@@ -89,14 +89,6 @@ set(LIBRARY_SOURCES
 # Create library
 add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
 
-# Add CUDA kernels as a separate library if CUDA is available
-if(CUDA_FOUND)
-    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
-    set_target_properties(cuda_kernels_lib PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-    )
-endif()
-
 # Link libraries for the library
 target_link_libraries(recursive_patchwork_lib
     ${EIGEN3_LIBRARIES}
@@ -106,7 +98,18 @@ target_link_libraries(recursive_patchwork_lib
 if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork_lib 
         ${CUDA_LIBRARIES}
-        cuda_kernels_lib
+    )
+    
+    # Add CUDA kernels as a separate library
+    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
+    set_target_properties(cuda_kernels_lib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+    )
+    
+    # Link CUDA kernels library against the main library to access LidarFusion functions
+    target_link_libraries(cuda_kernels_lib
+        recursive_patchwork_lib
+        ${CUDA_LIBRARIES}
     )
 endif()
 
