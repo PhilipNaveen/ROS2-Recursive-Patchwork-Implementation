@@ -39,25 +39,25 @@ std::vector<Point3D> RecursivePatchwork::rotatePoints2D(const std::vector<Point3
     float sin_a = std::sin(angle_rad); // same as above
     
     std::vector<Point3D> rotated_points;
-    rotated_points.reserve(points.size()); // Memory allocation does not cost time
+    rotated_points.reserve(points.size()); // Memory allocation O(1)
     
     for (const auto& point : points) {
         Point3D rotated;
-        rotated.x = point.x * cos_a - point.y * sin_a; // Harvey 2019 => O(nlogn)+1 [Addition O(1)]
+        rotated.x = point.x * cos_a - point.y * sin_a; // Harvey 2019 => O(nlogn)+1 [Addition=O(1)] BUT if small O(1)
         rotated.y = point.x * sin_a + point.y * cos_a; // Harvey 2019 => O(nlogn)+1
         rotated.z = point.z;  // Z remains unchanged
         rotated_points.push_back(rotated);
     } // This will be O(n*nlogn)=O(n^{2}logn)
     
-    return rotated_points; // Final: O(n^{2}logn)+O(n^{\frac{3}{2}}logn) = O(n^{2}logn)
+    return rotated_points; // Final: O(n^{2}logn)+O(n^{\frac{3}{2}}logn) = O(n^{2}logn) But if we assume that it is small and not a bigint it would be O(n^{\frac{3}{2}}logn) 
 }
 
 float RecursivePatchwork::computeDistance2D(const Point3D& p) {
-    return std::sqrt(p.x * p.x + p.y * p.y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity
+    return std::sqrt(p.x * p.x + p.y * p.y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity or if small O(1)
 }
 
 float RecursivePatchwork::computeDistance2D(float x, float y) {
-    return std::sqrt(x * x + y * y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity
+    return std::sqrt(x * x + y * y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity  or if small O(1)
 }
 
 std::vector<Point3D> RecursivePatchwork::removeEgoVehicle(const std::vector<Point3D>& points, float radius) {
