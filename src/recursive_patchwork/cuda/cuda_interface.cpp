@@ -15,15 +15,26 @@
 #include <thrust/tuple.h>
 
 // Forward declarations of CUDA kernels
-extern "C" {
+extern "C" { // Shoutout to Felix Lin for teaching me this in UVA OS S2025!
     __global__ void rotatePointsKernel(float* x, float* y, float* z, 
                                       float cos_a, float sin_a, int n);
     __global__ void transformPointsKernel(float* x, float* y, float* z,
                                          float* matrix, int n);
 }
 
-// Forward declaration of Thrust functor
-struct EgoVehicleFilter;
+// Thrust functor for ego vehicle filtering
+struct EgoVehicleFilter {
+    float radius_squared;
+    
+    EgoVehicleFilter(float radius) : radius_squared(radius * radius) {}
+    
+    __device__ bool operator()(const thrust::tuple<float, float, float>& point) const {
+        float x = thrust::get<0>(point);
+        float y = thrust::get<1>(point);
+        float distance_squared = x * x + y * y;
+        return distance_squared > radius_squared;
+    }
+};
 
 #endif // USE_CUDA
 
@@ -118,6 +129,7 @@ std::vector<Point3D> CudaManager::applyRotation2D(
     int blockSize = 256;
     int numBlocks = (n + blockSize - 1) / blockSize;
     rotatePointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, cos_a, sin_a, n);
+    cudaDeviceSynchronize();
     
     // Copy results back
     cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
@@ -189,6 +201,7 @@ std::vector<Point3D> CudaManager::applyTransform(
     int blockSize = 256;
     int numBlocks = (n + blockSize - 1) / blockSize;
     transformPointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, d_matrix, n);
+    cudaDeviceSynchronize();
     
     // Copy results back
     cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
@@ -222,43 +235,9 @@ std::vector<Point3D> CudaManager::removeEgoVehicle(
         return LidarFusion::removeEgoVehicle(points, radius);
     }
     
-    // Use Thrust for efficient filtering
-    thrust::host_vector<float> x_vec, y_vec, z_vec;
-    x_vec.reserve(points.size());
-    y_vec.reserve(points.size());
-    z_vec.reserve(points.size());
-    
-    for (const auto& point : points) {
-        x_vec.push_back(point.x);
-        y_vec.push_back(point.y);
-        z_vec.push_back(point.z);
-    }
-    
-    // Copy to device
-    thrust::device_vector<float> d_x = x_vec;
-    thrust::device_vector<float> d_y = y_vec;
-    thrust::device_vector<float> d_z = z_vec;
-    
-    // Create tuple vector for filtering
-    thrust::device_vector<thrust::tuple<float, float, float>> d_points(points.size());
-    thrust::transform(d_x.begin(), d_x.end(), d_y.begin(), d_z.begin(), d_points.begin(),
-                     thrust::make_tuple<float, float, float>);
-    
-    // Filter using Thrust
-    EgoVehicleFilter filter(radius);
-    auto new_end = thrust::remove_if(d_points.begin(), d_points.end(), filter);
-    d_points.erase(new_end, d_points.end());
-    
-    // Copy filtered results back
-    std::vector<Point3D> result;
-    result.reserve(d_points.size());
-    
-    thrust::host_vector<thrust::tuple<float, float, float>> h_points = d_points;
-    for (const auto& tuple : h_points) {
-        result.emplace_back(thrust::get<0>(tuple), thrust::get<1>(tuple), thrust::get<2>(tuple));
-    }
-    
-    return result;
+    // For now, fall back to CPU implementation to avoid Thrust complexity
+    // TODO: Implement proper GPU filtering when Thrust issues are resolved
+    return LidarFusion::removeEgoVehicle(points, radius);
 #else
     return LidarFusion::removeEgoVehicle(points, radius);
 #endif

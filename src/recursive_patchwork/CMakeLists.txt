@@ -81,10 +81,15 @@ set(LIBRARY_SOURCES
 )
 
 # Create library
+add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
+
+# Add CUDA kernels as a separate library if CUDA is available
 if(CUDA_FOUND)
-    add_library(recursive_patchwork_lib ${LIBRARY_SOURCES} ${CUDA_KERNEL_SOURCES})
-else()
-    add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
+    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
+    set_target_properties(cuda_kernels_lib PROPERTIES
+        CUDA_SEPARABLE_COMPILATION ON
+        POSITION_INDEPENDENT_CODE ON
+    )
 endif()
 
 # Link libraries for the library
@@ -94,7 +99,10 @@ target_link_libraries(recursive_patchwork_lib
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(recursive_patchwork_lib ${CUDA_LIBRARIES})
+    target_link_libraries(recursive_patchwork_lib 
+        ${CUDA_LIBRARIES}
+        cuda_kernels_lib
+    )
 endif()
 
 # Add ROS2 dependencies to the library
@@ -111,6 +119,7 @@ target_compile_options(recursive_patchwork_lib PRIVATE
     -ffast-math
     -Wall
     -Wextra
+    -Wno-unused-parameter
 )
 
 # Source files for main executable
@@ -138,7 +147,10 @@ target_link_libraries(recursive_patchwork_node
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(recursive_patchwork_node ${CUDA_LIBRARIES})
+    target_link_libraries(recursive_patchwork_node 
+        ${CUDA_LIBRARIES}
+        cuda_kernels_lib
+    )
 endif()
 
 # Add ROS2 dependencies using ament_target_dependencies
@@ -186,10 +198,14 @@ add_executable(test_cuda src/test_cuda.cpp)
 target_link_libraries(test_recursive_patchwork
     ${EIGEN3_LIBRARIES}
     ${OpenCV_LIBS}
+    recursive_patchwork_lib
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(test_recursive_patchwork ${CUDA_LIBRARIES})
+    target_link_libraries(test_recursive_patchwork 
+        ${CUDA_LIBRARIES}
+        cuda_kernels_lib
+    )
 endif()
 
 # Link libraries for CUDA test executable
@@ -200,7 +216,10 @@ target_link_libraries(test_cuda
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(test_cuda ${CUDA_LIBRARIES})
+    target_link_libraries(test_cuda 
+        ${CUDA_LIBRARIES}
+        cuda_kernels_lib
+    )
 endif()
 
 # Add ROS2 libraries to test
@@ -244,6 +263,15 @@ install(TARGETS
     LIBRARY DESTINATION lib/${PROJECT_NAME}
     ARCHIVE DESTINATION lib/${PROJECT_NAME}
 )
+
+if(CUDA_FOUND)
+    install(TARGETS 
+        cuda_kernels_lib
+        RUNTIME DESTINATION lib/${PROJECT_NAME}
+        LIBRARY DESTINATION lib/${PROJECT_NAME}
+        ARCHIVE DESTINATION lib/${PROJECT_NAME}
+    )
+endif()
 
 # Install headers
 install(DIRECTORY include/
