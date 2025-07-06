@@ -14,27 +14,13 @@
 #include <thrust/functional.h>
 #include <thrust/tuple.h>
 
-// Forward declarations of CUDA kernels
-extern "C" { // Shoutout to Felix Lin for teaching me this in UVA OS S2025!
-    __global__ void rotatePointsKernel(float* x, float* y, float* z, 
-                                      float cos_a, float sin_a, int n);
-    __global__ void transformPointsKernel(float* x, float* y, float* z,
-                                         float* matrix, int n);
+// Forward declarations of CUDA wrapper functions
+extern "C" {
+    void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
+                           float cos_a, float sin_a, int n);
+    void cuda_transform_points(float* d_x, float* d_y, float* d_z,
+                              float* d_matrix, int n);
 }
-
-// Thrust functor for ego vehicle filtering
-struct EgoVehicleFilter {
-    float radius_squared;
-    
-    EgoVehicleFilter(float radius) : radius_squared(radius * radius) {}
-    
-    __device__ bool operator()(const thrust::tuple<float, float, float>& point) const {
-        float x = thrust::get<0>(point);
-        float y = thrust::get<1>(point);
-        float distance_squared = x * x + y * y;
-        return distance_squared > radius_squared;
-    }
-};
 
 #endif // USE_CUDA
 
@@ -125,11 +111,8 @@ std::vector<Point3D> CudaManager::applyRotation2D(
     cudaMemcpy(d_y, y_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
     cudaMemcpy(d_z, z_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
     
-    // Launch kernel
-    int blockSize = 256;
-    int numBlocks = (n + blockSize - 1) / blockSize;
-    rotatePointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, cos_a, sin_a, n);
-    cudaDeviceSynchronize();
+    // Launch kernel using wrapper
+    cuda_rotate_points(d_x, d_y, d_z, cos_a, sin_a, n);
     
     // Copy results back
     cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
@@ -197,11 +180,8 @@ std::vector<Point3D> CudaManager::applyTransform(
     }
     cudaMemcpy(d_matrix, matrix_vec.data(), 16 * sizeof(float), cudaMemcpyHostToDevice);
     
-    // Launch kernel
-    int blockSize = 256;
-    int numBlocks = (n + blockSize - 1) / blockSize;
-    transformPointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, d_matrix, n);
-    cudaDeviceSynchronize();
+    // Launch kernel using wrapper
+    cuda_transform_points(d_x, d_y, d_z, d_matrix, n);
     
     // Copy results back
     cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);

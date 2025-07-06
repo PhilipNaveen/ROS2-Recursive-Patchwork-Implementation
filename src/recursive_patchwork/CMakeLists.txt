@@ -44,6 +44,7 @@ if(CUDA_FOUND)
         # Add CUDA kernel source
         set(CUDA_KERNEL_SOURCES
             cuda/cuda_kernels.cu
+            cuda/cuda_wrapper.cu
         )
     else()
         message(STATUS "CUDA found but Thrust not available - CUDA acceleration disabled")
