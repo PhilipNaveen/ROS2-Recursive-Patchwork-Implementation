@@ -73,5 +73,5 @@ nvidia smi
 
 # Check if our ROS2 package sees it
 ros2 run recursive_patchwork test_cuda
-``
+```
 
