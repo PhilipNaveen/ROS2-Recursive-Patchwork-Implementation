@@ -33,7 +33,7 @@ for centered data $Q = P - \mu$. Then we take normal vector $n$ as the eigenvect
 - **OpenCV** (>= 4.0.0)
 
 ### Optional Dependencies
-- **CUDA** (>= 10.0) - for GPU acceleration of point cloud operations
+- **CUDA** (>= 10.0) - for GPU acceleration. We haven't made this part yet, but it's coming once I get better at CUDA.
 - **ROS2** (>= Humble) - for ROS2 bag file support
 
 
@@ -65,58 +65,13 @@ Or use this for a more aggressive but still functional build straight from CMAKE
 cd src/recursive_patchwork && rm -rf build/ && mkdir build && cd build && cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ && make -j4
 ```
 
-## GPU Acceleration with CUDA
+Then, check if CUDA is available (we are using gpu node portals at @ UVA).
 
-The package now includes GPU-accelerated point cloud operations using CUDA. The implementation automatically falls back to CPU when CUDA is not available.
-
-### Project Structure
 ```
-src/recursive_patchwork/
-├── src/                    # Regular C++ source files
-│   ├── lidar_fusion.cpp    # LiDAR fusion implementation
-│   └── ...
-├── cuda/                   # CUDA-specific source files
-│   ├── cuda_wrapper.cu     # CUDA kernels and wrappers
-│   └── cuda_interface.cu   # CUDA interface implementation
-├── include/                # Headers
-│   ├── cuda_interface.hpp  # CUDA interface
-│   └── ...
-└── CMakeLists.txt
-```
+# Check if GPU is available
+nvidia smi
 
-### CUDA Features
-- **2D Rotation**: Parallel rotation of point clouds around the Z-axis
-- **4x4 Transformation**: Parallel application of homogeneous transformation matrices
-- **Ego Vehicle Filtering**: Parallel removal of points within a specified radius
-- **Automatic Fallback**: Seamless CPU fallback when CUDA is unavailable
-
-### Testing CUDA Acceleration
-
-To test if CUDA acceleration is working:
-
-```bash
-# Build with CUDA support
-colcon build --packages-select recursive_patchwork
-
-# Run the CUDA test
+# Check if our ROS2 package sees it
 ros2 run recursive_patchwork test_cuda
-```
-
-The test will:
-1. Check if CUDA is available
-2. Compare CPU vs GPU performance
-3. Verify that results match between CPU and GPU implementations
-4. Report timing differences
-
-### Performance Benefits
-
-GPU acceleration provides significant speedup for large point clouds:
-- **2D Rotation**: 5-10x speedup for 100k+ points
-- **Ego Vehicle Filtering**: 3-8x speedup for 100k+ points  
-- **4x4 Transformation**: 4-12x speedup for 100k+ points
-
-The speedup depends on:
-- Point cloud size (larger clouds benefit more)
-- GPU hardware (newer GPUs provide better performance)
-- Memory transfer overhead (small clouds may not benefit due to transfer costs)
+``
 
