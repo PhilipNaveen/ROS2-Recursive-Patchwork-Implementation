@@ -20,7 +20,11 @@ find_package(CUDA QUIET)
 if(CUDA_FOUND)
     enable_language(CUDA)
     set(CMAKE_CUDA_STANDARD 17)
-    set(CMAKE_CUDA_ARCHITECTURES native)
+    
+    # Set CUDA architectures - use common architectures instead of "native"
+    # This avoids GPU detection issues at build time
+    set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80;86")
+    
     add_definitions(-DUSE_CUDA)
     
     # Find Thrust (usually comes with CUDA)
@@ -35,6 +39,7 @@ if(CUDA_FOUND)
     if(THRUST_INCLUDE_DIR)
         include_directories(${THRUST_INCLUDE_DIR})
         message(STATUS "CUDA acceleration enabled with Thrust")
+        message(STATUS "CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
         
         # Add CUDA kernel source
         set(CUDA_KERNEL_SOURCES
