@@ -65,3 +65,13 @@ Or use this for a more aggressive but still functional build straight from CMAKE
 cd src/recursive_patchwork && rm -rf build/ && mkdir build && cd build && cmake .. -G "Unix Makefiles" -DCMAKE_BUILD_TYPE=Release -DCMAKE_TOOLCHAIN_FILE="" -DCMAKE_MAKE_PROGRAM=/usr/bin/make -DCMAKE_C_COMPILER=/usr/bin/cc -DCMAKE_CXX_COMPILER=/usr/bin/c++ && make -j4
 ```
 
+Then, check if CUDA is available (we are using gpu node portals at @ UVA).
+
+```
+# Check if GPU is available
+nvidia smi
+
+# Check if our ROS2 package sees it
+ros2 run recursive_patchwork test_cuda
+``
+

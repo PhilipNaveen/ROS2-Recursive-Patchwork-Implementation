@@ -20,8 +20,42 @@ find_package(CUDA QUIET)
 if(CUDA_FOUND)
     enable_language(CUDA)
     set(CMAKE_CUDA_STANDARD 17)
+    
+    # Set CUDA architectures - use common architectures instead of "native"
+    # This avoids GPU detection issues at build time
+    set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80;86")
+    
+    # Add CUDA compiler flags to suppress Eigen warnings
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20012")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20013")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20015")
+    
     add_definitions(-DUSE_CUDA)
-    message(STATUS "CUDA acceleration enabled")
+    
+    # Find Thrust (usually comes with CUDA)
+    find_path(THRUST_INCLUDE_DIR thrust/device_vector.h
+        PATHS
+        ${CUDA_INCLUDE_DIRS}
+        /usr/local/cuda/include
+        /opt/cuda/include
+        NO_DEFAULT_PATH
+    )
+    
+    if(THRUST_INCLUDE_DIR)
+        include_directories(${THRUST_INCLUDE_DIR})
+        message(STATUS "CUDA acceleration enabled with Thrust")
+        message(STATUS "CUDA architectures: ${CMAKE_CUDA_ARCHITECTURES}")
+        
+        # Add CUDA kernel source
+        set(CUDA_KERNEL_SOURCES
+            cuda/cuda_wrapper.cu
+            cuda/cuda_interface.cu
+        )
+    else()
+        message(STATUS "CUDA found but Thrust not available - CUDA acceleration disabled")
+        set(CUDA_FOUND FALSE)
+    endif()
 else()
     message(STATUS "CUDA acceleration not available")
 endif()
@@ -52,6 +86,11 @@ set(LIBRARY_SOURCES
     src/rosbag_loader.cpp
 )
 
+# Add CUDA sources to the main library if CUDA is available
+if(CUDA_FOUND)
+    list(APPEND LIBRARY_SOURCES ${CUDA_KERNEL_SOURCES})
+endif()
+
 # Create library
 add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
 
@@ -62,7 +101,9 @@ target_link_libraries(recursive_patchwork_lib
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(recursive_patchwork_lib ${CUDA_LIBRARIES})
+    target_link_libraries(recursive_patchwork_lib 
+        ${CUDA_LIBRARIES}
+    )
 endif()
 
 # Add ROS2 dependencies to the library
@@ -79,6 +120,7 @@ target_compile_options(recursive_patchwork_lib PRIVATE
     -ffast-math
     -Wall
     -Wextra
+    -Wno-unused-parameter
 )
 
 # Source files for main executable
@@ -106,7 +148,9 @@ target_link_libraries(recursive_patchwork_node
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(recursive_patchwork_node ${CUDA_LIBRARIES})
+    target_link_libraries(recursive_patchwork_node 
+        ${CUDA_LIBRARIES}
+    )
 endif()
 
 # Add ROS2 dependencies using ament_target_dependencies
@@ -147,18 +191,44 @@ set(TEST_SOURCES
 
 add_executable(test_recursive_patchwork ${TEST_SOURCES})
 
+# CUDA test executable
+add_executable(test_cuda src/test_cuda.cpp)
+
 # Link libraries for test executable
 target_link_libraries(test_recursive_patchwork
+    ${EIGEN3_LIBRARIES}
+    ${OpenCV_LIBS}
+    recursive_patchwork_lib
+)
+
+if(CUDA_FOUND)
+    target_link_libraries(test_recursive_patchwork 
+        ${CUDA_LIBRARIES}
+    )
+endif()
+
+# Link libraries for CUDA test executable
+target_link_libraries(test_cuda
+    recursive_patchwork_lib
     ${EIGEN3_LIBRARIES}
     ${OpenCV_LIBS}
 )
 
 if(CUDA_FOUND)
-    target_link_libraries(test_recursive_patchwork ${CUDA_LIBRARIES})
+    target_link_libraries(test_cuda 
+        ${CUDA_LIBRARIES}
+    )
 endif()
 
 # Add ROS2 libraries to test
 ament_target_dependencies(test_recursive_patchwork
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+)
+
+# Add ROS2 libraries to CUDA test
+ament_target_dependencies(test_cuda
     rclcpp
     sensor_msgs
     rosbag2_cpp
@@ -172,12 +242,21 @@ target_compile_options(test_recursive_patchwork PRIVATE
     -g
 )
 
+# Compiler flags for CUDA test executable
+target_compile_options(test_cuda PRIVATE
+    -O2
+    -Wall
+    -Wextra
+    -g
+)
+
 # Install targets
 install(TARGETS 
     recursive_patchwork_lib
     recursive_patchwork 
     recursive_patchwork_node
     test_recursive_patchwork
+    test_cuda
     RUNTIME DESTINATION lib/${PROJECT_NAME}
     LIBRARY DESTINATION lib/${PROJECT_NAME}
     ARCHIVE DESTINATION lib/${PROJECT_NAME}
