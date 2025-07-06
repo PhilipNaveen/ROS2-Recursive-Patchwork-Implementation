@@ -355,7 +355,7 @@ std::vector<Point3D> CudaManager::filterPointsByRadius(const std::vector<Point3D
     cuda_filter_points_by_radius(d_x, d_y, d_z, d_distances, d_mask, radius, n);
     
     // Copy mask back
-    std::vector<bool> mask(n);
+    std::vector<char> mask(n);
     cudaMemcpy(mask.data(), d_mask, n * sizeof(bool), cudaMemcpyDeviceToHost);
     
     // Free device memory
