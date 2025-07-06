@@ -53,3 +53,10 @@ private:
 };
 
 } // namespace recursive_patchwork 
+
+// Node that can automatically fuse any amount of lidars as long as the static
+// transforms are all provided => transforms in ros is fixed spacial relationship that
+// doesn't change over time
+//      => Ego vs World frame => Ego = Math is based on solely on the car World = Revolves around GPS
+//      => We want to map what lidar is caputring what from Ego to World
+//      => This is used to create the 

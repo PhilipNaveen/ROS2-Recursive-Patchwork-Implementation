@@ -10,65 +10,65 @@ namespace recursive_patchwork {
 
 RecursivePatchwork::RecursivePatchwork(const PatchworkConfig& config) 
     : config_(config) {
-}
+} // O(1)
 
 RecursivePatchwork::~RecursivePatchwork() {
-}
+} // O(1)
 
 std::vector<Point3D> RecursivePatchwork::cleanPoints(const std::vector<Point3D>& points) {
     std::vector<Point3D> cleaned_points;
-    cleaned_points.reserve(points.size());
+    cleaned_points.reserve(points.size()); // Allocation doesnt cost time
     
     for (const auto& point : points) {
         if (std::isfinite(point.x) && std::isfinite(point.y) && std::isfinite(point.z)) {
             cleaned_points.push_back(point);
         }
-    }
+    } // O(n)
     
     if (cleaned_points.size() < points.size()) {
         std::cout << "Removed " << (points.size() - cleaned_points.size()) 
                   << " points with NaN/inf values" << std::endl;
-    }
+    } // O(1)
     
     return cleaned_points;
 }
 
 std::vector<Point3D> RecursivePatchwork::rotatePoints2D(const std::vector<Point3D>& points, float angle_degrees) {
     float angle_rad = angle_degrees * M_PI / 180.0f;
-    float cos_a = std::cos(angle_rad);
-    float sin_a = std::sin(angle_rad);
+    float cos_a = std::cos(angle_rad); // O(nlogn*n^{\frac{1}{2}}) = O(n^{\frac{3}{2}}logn)
+    float sin_a = std::sin(angle_rad); // same as above
     
     std::vector<Point3D> rotated_points;
-    rotated_points.reserve(points.size());
+    rotated_points.reserve(points.size()); // Memory allocation does not cost time
     
     for (const auto& point : points) {
         Point3D rotated;
-        rotated.x = point.x * cos_a - point.y * sin_a;
-        rotated.y = point.x * sin_a + point.y * cos_a;
+        rotated.x = point.x * cos_a - point.y * sin_a; // Harvey 2019 => O(nlogn)+1 [Addition O(1)]
+        rotated.y = point.x * sin_a + point.y * cos_a; // Harvey 2019 => O(nlogn)+1
         rotated.z = point.z;  // Z remains unchanged
         rotated_points.push_back(rotated);
-    }
+    } // This will be O(n*nlogn)=O(n^{2}logn)
     
-    return rotated_points;
+    return rotated_points; // Final: O(n^{2}logn)+O(n^{\frac{3}{2}}logn) = O(n^{2}logn)
 }
 
 float RecursivePatchwork::computeDistance2D(const Point3D& p) {
-    return std::sqrt(p.x * p.x + p.y * p.y);
+    return std::sqrt(p.x * p.x + p.y * p.y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity
 }
 
 float RecursivePatchwork::computeDistance2D(float x, float y) {
-    return std::sqrt(x * x + y * y);
+    return std::sqrt(x * x + y * y); // Harvey 2019 => O(nlogn) and sqrt uses the same complexity
 }
 
 std::vector<Point3D> RecursivePatchwork::removeEgoVehicle(const std::vector<Point3D>& points, float radius) {
     std::vector<Point3D> filtered_points;
-    filtered_points.reserve(points.size());
+    filtered_points.reserve(points.size()); // Memory allocation does not cost time
     
-    for (const auto& point : points) {
-        if (computeDistance2D(point) > radius) {
+    for (const auto& point : points) { // repeats n times
+        if (computeDistance2D(point) > radius) { // computeDistance2D is O(nlogn) // if small assume O(1) ask
             filtered_points.push_back(point);
         }
-    }
+    } // O(n^{2}logn) or O(n)
     
     return filtered_points;
 }
@@ -79,30 +79,30 @@ RecursivePatchwork::PlaneFitResult RecursivePatchwork::fitPlanePCA(const std::ve
     }
     
     // Compute centroid
-    Eigen::Vector3f centroid = PointCloudProcessor::computeCentroid(points);
+    Eigen::Vector3f centroid = PointCloudProcessor::computeCentroid(points); //O(n) (add all up divide by tot)
     
     // Compute covariance matrix
-    Eigen::Matrix3f cov = PointCloudProcessor::computeCovariance(points, centroid);
+    Eigen::Matrix3f cov = PointCloudProcessor::computeCovariance(points, centroid); // O(n) <= check due to dealing with matrix
     
     // Eigen decomposition
-    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(cov);
-    Eigen::Vector3f normal = solver.eigenvectors().col(0);
+    Eigen::SelfAdjointEigenSolver<Eigen::Matrix3f> solver(cov); //O(1)
+    Eigen::Vector3f normal = solver.eigenvectors().col(0); // O(1)
     
     // Ensure normal points upward (positive Z)
-    if (normal(2) < 0) {
+    if (normal(2) < 0) { //O(1)
         normal = -normal;
     }
     
     // Compute residual
     float residual = 0.0f;
-    for (const auto& point : points) {
-        Eigen::Vector3f p_vec(point.x, point.y, point.z);
-        float dist = std::abs((p_vec - centroid).dot(normal));
+    for (const auto& point : points) { // O(n) Iterations
+        Eigen::Vector3f p_vec(point.x, point.y, point.z); // O(1) Cost for claculating
+        float dist = std::abs((p_vec - centroid).dot(normal)); // O(1)
         residual += dist;
     }
     residual /= points.size();
     
-    return {centroid, normal, residual};
+    return {centroid, normal, residual}; // Total O(3n+3)
 }
 
 std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D>& patch_points, 
