@@ -76,8 +76,8 @@ src/recursive_patchwork/
 │   ├── lidar_fusion.cpp    # LiDAR fusion implementation
 │   └── ...
 ├── cuda/                   # CUDA-specific source files
-│   ├── cuda_kernels.cu     # CUDA kernel implementations
-│   └── cuda_interface.cpp  # Host-side CUDA wrappers
+│   ├── cuda_wrapper.cu     # CUDA kernels and wrappers
+│   └── cuda_interface.cu   # CUDA interface implementation
 ├── include/                # Headers
 │   ├── cuda_interface.hpp  # CUDA interface
 │   └── ...

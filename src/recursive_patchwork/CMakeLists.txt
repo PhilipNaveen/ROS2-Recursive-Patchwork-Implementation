@@ -43,8 +43,8 @@ if(CUDA_FOUND)
         
         # Add CUDA kernel source
         set(CUDA_KERNEL_SOURCES
-            cuda/cuda_kernels.cu
             cuda/cuda_wrapper.cu
+            cuda/cuda_interface.cu
         )
     else()
         message(STATUS "CUDA found but Thrust not available - CUDA acceleration disabled")
@@ -78,7 +78,6 @@ set(LIBRARY_SOURCES
     src/lidar_fusion.cpp
     src/visualization.cpp
     src/rosbag_loader.cpp
-    cuda/cuda_interface.cpp
 )
 
 # Create library

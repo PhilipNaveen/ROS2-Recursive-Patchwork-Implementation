@@ -1,6 +1,7 @@
 #pragma once
 
 #include "recursive_patchwork.hpp"
+#include <Eigen/Dense>
 #include <vector>
 #include <memory>
 

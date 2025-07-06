@@ -22,9 +22,9 @@ std::vector<Point3D> generateTestPoints(int num_points) {
     return points;
 }
 
-// Time a function execution
+// Time a function execution and return the result
 template<typename Func>
-double timeFunction(Func func, const std::string& name) {
+auto timeFunction(Func func, const std::string& name) -> decltype(func()) {
     auto start = std::chrono::high_resolution_clock::now();
     auto result = func();
     auto end = std::chrono::high_resolution_clock::now();
@@ -32,7 +32,7 @@ double timeFunction(Func func, const std::string& name) {
     double duration = std::chrono::duration<double>(end - start).count();
     std::cout << name << " took " << duration * 1000.0 << " ms" << std::endl;
     
-    return duration;
+    return result;
 }
 
 // Compare two point clouds
