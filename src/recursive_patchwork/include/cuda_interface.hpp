@@ -33,6 +33,23 @@ public:
         const std::vector<Point3D>& points, 
         float radius = 2.5f);
 
+    // Phase 1: GPU-accelerated patchwork operations
+    static std::vector<float> computeDistances2D(
+        const std::vector<Point3D>& points);
+    
+    static std::vector<Point3D> filterPointsByRadius(
+        const std::vector<Point3D>& points,
+        const std::vector<float>& distances,
+        float radius);
+    
+    static std::vector<float> computeAngles(
+        const std::vector<Point3D>& points);
+    
+    static std::vector<float> computePlaneDistances(
+        const std::vector<Point3D>& points,
+        const Eigen::Vector3f& centroid,
+        const Eigen::Vector3f& normal);
+
 private:
     static bool initialized_;
     static bool available_;
@@ -51,6 +68,23 @@ namespace ops {
     std::vector<Point3D> removeEgoVehicle(
         const std::vector<Point3D>& points, 
         float radius = 2.5f);
+
+    // Phase 1: GPU-accelerated patchwork operations
+    std::vector<float> computeDistances2D(
+        const std::vector<Point3D>& points);
+    
+    std::vector<Point3D> filterPointsByRadius(
+        const std::vector<Point3D>& points,
+        const std::vector<float>& distances,
+        float radius);
+    
+    std::vector<float> computeAngles(
+        const std::vector<Point3D>& points);
+    
+    std::vector<float> computePlaneDistances(
+        const std::vector<Point3D>& points,
+        const Eigen::Vector3f& centroid,
+        const Eigen::Vector3f& normal);
 }
 
 } // namespace cuda

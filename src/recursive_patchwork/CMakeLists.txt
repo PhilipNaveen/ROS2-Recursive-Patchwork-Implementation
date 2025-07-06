@@ -27,6 +27,9 @@ if(CUDA_FOUND)
     
     # Add CUDA compiler flags to suppress Eigen warnings
     set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20012")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20013")
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} -diag-suppress=20015")
     
     add_definitions(-DUSE_CUDA)
     

@@ -1,5 +1,6 @@
 #include "recursive_patchwork.hpp"
 #include "point_cloud_processor.hpp"
+#include "cuda_interface.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -197,15 +198,15 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         // Fit plane
         auto plane_result = fitPlanePCA(ground_points);
         
-        // Compute distances to plane
+        // Compute distances to plane using GPU acceleration
         std::vector<bool> new_mask(patch_points.size(), false);
         float threshold = config_.th_dist * (1.0f + 0.2f * rel_dist);
         
+        // Use GPU-accelerated plane distance computation
+        auto plane_distances = cuda::ops::computePlaneDistances(patch_points, plane_result.centroid, plane_result.normal);
+        
         for (size_t i = 0; i < patch_points.size(); ++i) {
-            const auto& point = patch_points[i];
-            Eigen::Vector3f p_vec(point.x, point.y, point.z);
-            float dist = std::abs((p_vec - plane_result.centroid).dot(plane_result.normal));
-            if (dist < threshold) {
+            if (plane_distances[i] < threshold) {
                 new_mask[i] = true;
             }
         }
@@ -316,24 +317,24 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
         return {{}, {}};
     }
     
-    // Compute distances and filter by radius
-    std::vector<float> distances;
-    distances.reserve(cleaned_points.size());
-    for (const auto& point : cleaned_points) {
-        distances.push_back(computeDistance2D(point));
-    }
+    // Compute distances using GPU acceleration
+    auto distances = cuda::ops::computeDistances2D(cleaned_points);
     
-    std::vector<Point3D> points_zone;
-    std::vector<float> d_zone;
-    points_zone.reserve(cleaned_points.size());
-    d_zone.reserve(cleaned_points.size());
-    
-    for (size_t i = 0; i < cleaned_points.size(); ++i) {
-        if (distances[i] <= config_.filtering_radius) {
-            points_zone.push_back(cleaned_points[i]);
-            d_zone.push_back(distances[i]);
+    // Filter by radius using GPU acceleration
+    auto [points_zone, d_zone] = [&]() -> std::pair<std::vector<Point3D>, std::vector<float>> {
+        auto filtered_points = cuda::ops::filterPointsByRadius(cleaned_points, distances, config_.filtering_radius);
+        
+        // Extract distances for filtered points
+        std::vector<float> filtered_distances;
+        filtered_distances.reserve(filtered_points.size());
+        for (size_t i = 0; i < cleaned_points.size(); ++i) {
+            if (distances[i] <= config_.filtering_radius) {
+                filtered_distances.push_back(distances[i]);
+            }
         }
-    }
+        
+        return {filtered_points, filtered_distances};
+    }();
     
     if (points_zone.size() < 3) {
         return {{}, cleaned_points};
@@ -350,14 +351,8 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     
     float sector_angle = 2.0f * M_PI / config_.num_sectors;
     
-    // Compute angles
-    std::vector<float> angles;
-    angles.reserve(points_zone.size());
-    for (const auto& point : points_zone) {
-        float angle = std::atan2(point.y, point.x);
-        if (angle < 0) angle += 2.0f * M_PI;
-        angles.push_back(angle);
-    }
+    // Compute angles using GPU acceleration
+    auto angles = cuda::ops::computeAngles(points_zone);
     
     std::vector<bool> is_ground_zone(points_zone.size(), false);
     
