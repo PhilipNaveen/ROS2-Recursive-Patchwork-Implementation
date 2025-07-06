@@ -46,11 +46,15 @@ bool CudaManager::available_ = false;
 
 bool CudaManager::isAvailable() {
 #ifdef USE_CUDA
+    std::cout << "Checking CUDA availability..." << std::endl;
     if (!initialized_) {
+        std::cout << "CUDA not initialized, calling initialize()..." << std::endl;
         initialize();
     }
+    std::cout << "CUDA available: " << (available_ ? "YES" : "NO") << std::endl;
     return available_;
 #else
+    std::cout << "USE_CUDA not defined, CUDA not available" << std::endl;
     return false;
 #endif
 }
@@ -63,11 +67,11 @@ bool CudaManager::initialize() {
     
     cudaError_t error = cudaSetDevice(0);
     if (error != cudaSuccess) {
-        std::cerr << "❌ CUDA initialization failed: " << cudaGetErrorString(error) << std::endl;
+        std::cerr << "CUDA initialization failed: " << cudaGetErrorString(error) << std::endl;
         available_ = false;
     } else {
         available_ = true;
-        std::cout << "🚀 CUDA acceleration initialized successfully" << std::endl;
+        std::cout << "CUDA acceleration initialized successfully" << std::endl;
     }
     
     initialized_ = true;
@@ -75,7 +79,7 @@ bool CudaManager::initialize() {
 #else
     available_ = false;
     initialized_ = true;
-    std::cout << "ℹ️  CUDA acceleration not available (USE_CUDA not defined)" << std::endl;
+    std::cout << "CUDA acceleration not available (USE_CUDA not defined)" << std::endl;
     return false;
 #endif
 }
@@ -98,7 +102,7 @@ std::vector<Point3D> CudaManager::applyRotation2D(
         return LidarFusion::applyRotation2D(points, angle_degrees);
     }
     
-    std::cout << "🔄 [CUDA] Applying 2D rotation to " << points.size() << " points..." << std::endl;
+            std::cout << "[CUDA] Applying 2D rotation to " << points.size() << " points..." << std::endl;
     
     int n = points.size();
     float angle_rad = angle_degrees * M_PI / 180.0f;
@@ -147,7 +151,7 @@ std::vector<Point3D> CudaManager::applyRotation2D(
         result.emplace_back(x_vec[i], y_vec[i], z_vec[i]);
     }
     
-    std::cout << "✅ [CUDA] 2D rotation completed successfully" << std::endl;
+            std::cout << "[CUDA] 2D rotation completed successfully" << std::endl;
     return result;
 #else
     return LidarFusion::applyRotation2D(points, angle_degrees);
@@ -163,7 +167,7 @@ std::vector<Point3D> CudaManager::applyTransform(
         return LidarFusion::applyTransform(points, transform_matrix);
     }
     
-    std::cout << "🔄 [CUDA] Applying 4x4 transformation to " << points.size() << " points..." << std::endl;
+            std::cout << "[CUDA] Applying 4x4 transformation to " << points.size() << " points..." << std::endl;
     
     int n = points.size();
     
@@ -220,7 +224,7 @@ std::vector<Point3D> CudaManager::applyTransform(
         result.emplace_back(x_vec[i], y_vec[i], z_vec[i]);
     }
     
-    std::cout << "✅ [CUDA] 4x4 transformation completed successfully" << std::endl;
+            std::cout << "[CUDA] 4x4 transformation completed successfully" << std::endl;
     return result;
 #else
     return LidarFusion::applyTransform(points, transform_matrix);
@@ -256,7 +260,7 @@ std::vector<float> CudaManager::computeDistances2D(const std::vector<Point3D>& p
         return distances;
     }
     
-    std::cout << "🔄 [CUDA] Computing 2D distances for " << points.size() << " points..." << std::endl;
+            std::cout << "[CUDA] Computing 2D distances for " << points.size() << " points..." << std::endl;
     
     int n = points.size();
     
@@ -291,7 +295,7 @@ std::vector<float> CudaManager::computeDistances2D(const std::vector<Point3D>& p
     cudaFree(d_y);
     cudaFree(d_distances);
     
-    std::cout << "✅ [CUDA] 2D distance computation completed successfully" << std::endl;
+            std::cout << "[CUDA] 2D distance computation completed successfully" << std::endl;
     return distances;
 #else
     // Fallback to CPU
@@ -321,7 +325,7 @@ std::vector<Point3D> CudaManager::filterPointsByRadius(const std::vector<Point3D
         return filtered_points;
     }
     
-    std::cout << "🔄 [CUDA] Filtering " << points.size() << " points by radius " << radius << "..." << std::endl;
+            std::cout << "[CUDA] Filtering " << points.size() << " points by radius " << radius << "..." << std::endl;
     
     int n = points.size();
     
@@ -374,7 +378,7 @@ std::vector<Point3D> CudaManager::filterPointsByRadius(const std::vector<Point3D
         }
     }
     
-    std::cout << "✅ [CUDA] Point filtering completed successfully. Filtered: " 
+            std::cout << "[CUDA] Point filtering completed successfully. Filtered: " 
               << filtered_points.size() << "/" << points.size() << " points" << std::endl;
     return filtered_points;
 #else
@@ -405,7 +409,7 @@ std::vector<float> CudaManager::computeAngles(const std::vector<Point3D>& points
         return angles;
     }
     
-    std::cout << "🔄 [CUDA] Computing angles for " << points.size() << " points..." << std::endl;
+            std::cout << "[CUDA] Computing angles for " << points.size() << " points..." << std::endl;
     
     int n = points.size();
     
@@ -440,7 +444,7 @@ std::vector<float> CudaManager::computeAngles(const std::vector<Point3D>& points
     cudaFree(d_y);
     cudaFree(d_angles);
     
-    std::cout << "✅ [CUDA] Angle computation completed successfully" << std::endl;
+            std::cout << "[CUDA] Angle computation completed successfully" << std::endl;
     return angles;
 #else
     // Fallback to CPU
@@ -472,7 +476,7 @@ std::vector<float> CudaManager::computePlaneDistances(const std::vector<Point3D>
         return distances;
     }
     
-    std::cout << "🔄 [CUDA] Computing plane distances for " << points.size() << " points..." << std::endl;
+            std::cout << "[CUDA] Computing plane distances for " << points.size() << " points..." << std::endl;
     
     int n = points.size();
     
@@ -514,7 +518,7 @@ std::vector<float> CudaManager::computePlaneDistances(const std::vector<Point3D>
     cudaFree(d_z);
     cudaFree(d_distances);
     
-    std::cout << "✅ [CUDA] Plane distance computation completed successfully" << std::endl;
+            std::cout << "[CUDA] Plane distance computation completed successfully" << std::endl;
     return distances;
 #else
     // Fallback to CPU
@@ -538,9 +542,9 @@ std::vector<Point3D> applyRotation2D(
     if (CudaManager::isAvailable()) {
         return CudaManager::applyRotation2D(points, angle_degrees);
     } else {
-        std::cout << "🔄 [CPU] Applying 2D rotation to " << points.size() << " points..." << std::endl;
+        std::cout << "[CPU] Applying 2D rotation to " << points.size() << " points..." << std::endl;
         auto result = LidarFusion::applyRotation2D(points, angle_degrees);
-        std::cout << "✅ [CPU] 2D rotation completed successfully" << std::endl;
+        std::cout << "[CPU] 2D rotation completed successfully" << std::endl;
         return result;
     }
 }
@@ -552,9 +556,9 @@ std::vector<Point3D> applyTransform(
     if (CudaManager::isAvailable()) {
         return CudaManager::applyTransform(points, transform_matrix);
     } else {
-        std::cout << "🔄 [CPU] Applying 4x4 transformation to " << points.size() << " points..." << std::endl;
+        std::cout << "[CPU] Applying 4x4 transformation to " << points.size() << " points..." << std::endl;
         auto result = LidarFusion::applyTransform(points, transform_matrix);
-        std::cout << "✅ [CPU] 4x4 transformation completed successfully" << std::endl;
+        std::cout << "[CPU] 4x4 transformation completed successfully" << std::endl;
         return result;
     }
 }
@@ -563,14 +567,14 @@ std::vector<Point3D> removeEgoVehicle(
     const std::vector<Point3D>& points, float radius) {
     
     if (CudaManager::isAvailable()) {
-        std::cout << "🔄 [CPU] Removing ego vehicle from " << points.size() << " points (GPU fallback)..." << std::endl;
+        std::cout << "[CPU] Removing ego vehicle from " << points.size() << " points (GPU fallback)..." << std::endl;
         auto result = LidarFusion::removeEgoVehicle(points, radius);
-        std::cout << "✅ [CPU] Ego vehicle removal completed successfully" << std::endl;
+        std::cout << "[CPU] Ego vehicle removal completed successfully" << std::endl;
         return result;
     } else {
-        std::cout << "🔄 [CPU] Removing ego vehicle from " << points.size() << " points..." << std::endl;
+        std::cout << "[CPU] Removing ego vehicle from " << points.size() << " points..." << std::endl;
         auto result = LidarFusion::removeEgoVehicle(points, radius);
-        std::cout << "✅ [CPU] Ego vehicle removal completed successfully" << std::endl;
+        std::cout << "[CPU] Ego vehicle removal completed successfully" << std::endl;
         return result;
     }
 }
@@ -579,13 +583,13 @@ std::vector<float> computeDistances2D(const std::vector<Point3D>& points) {
     if (CudaManager::isAvailable()) {
         return CudaManager::computeDistances2D(points);
     } else {
-        std::cout << "🔄 [CPU] Computing 2D distances for " << points.size() << " points..." << std::endl;
+        std::cout << "[CPU] Computing 2D distances for " << points.size() << " points..." << std::endl;
         std::vector<float> distances;
         distances.reserve(points.size());
         for (const auto& point : points) {
             distances.push_back(std::sqrt(point.x * point.x + point.y * point.y));
         }
-        std::cout << "✅ [CPU] 2D distance computation completed successfully" << std::endl;
+        std::cout << "[CPU] 2D distance computation completed successfully" << std::endl;
         return distances;
     }
 }
@@ -596,7 +600,7 @@ std::vector<Point3D> filterPointsByRadius(const std::vector<Point3D>& points,
     if (CudaManager::isAvailable()) {
         return CudaManager::filterPointsByRadius(points, distances, radius);
     } else {
-        std::cout << "🔄 [CPU] Filtering " << points.size() << " points by radius " << radius << "..." << std::endl;
+        std::cout << "[CPU] Filtering " << points.size() << " points by radius " << radius << "..." << std::endl;
         std::vector<Point3D> filtered_points;
         filtered_points.reserve(points.size());
         for (size_t i = 0; i < points.size(); ++i) {
@@ -604,7 +608,7 @@ std::vector<Point3D> filterPointsByRadius(const std::vector<Point3D>& points,
                 filtered_points.push_back(points[i]);
             }
         }
-        std::cout << "✅ [CPU] Point filtering completed successfully. Filtered: " 
+        std::cout << "[CPU] Point filtering completed successfully. Filtered: " 
                   << filtered_points.size() << "/" << points.size() << " points" << std::endl;
         return filtered_points;
     }
@@ -614,7 +618,7 @@ std::vector<float> computeAngles(const std::vector<Point3D>& points) {
     if (CudaManager::isAvailable()) {
         return CudaManager::computeAngles(points);
     } else {
-        std::cout << "🔄 [CPU] Computing angles for " << points.size() << " points..." << std::endl;
+        std::cout << "[CPU] Computing angles for " << points.size() << " points..." << std::endl;
         std::vector<float> angles;
         angles.reserve(points.size());
         for (const auto& point : points) {
@@ -622,7 +626,7 @@ std::vector<float> computeAngles(const std::vector<Point3D>& points) {
             if (angle < 0) angle += 2.0f * M_PI;
             angles.push_back(angle);
         }
-        std::cout << "✅ [CPU] Angle computation completed successfully" << std::endl;
+        std::cout << "[CPU] Angle computation completed successfully" << std::endl;
         return angles;
     }
 }
@@ -630,10 +634,13 @@ std::vector<float> computeAngles(const std::vector<Point3D>& points) {
 std::vector<float> computePlaneDistances(const std::vector<Point3D>& points,
                                               const Eigen::Vector3f& centroid,
                                               const Eigen::Vector3f& normal) {
+    std::cout << "computePlaneDistances called with " << points.size() << " points" << std::endl;
     if (CudaManager::isAvailable()) {
+        std::cout << "Using CUDA for plane distances" << std::endl;
         return CudaManager::computePlaneDistances(points, centroid, normal);
     } else {
-        std::cout << "🔄 [CPU] Computing plane distances for " << points.size() << " points..." << std::endl;
+        std::cout << "Using CPU for plane distances" << std::endl;
+        std::cout << "[CPU] Computing plane distances for " << points.size() << " points..." << std::endl;
         std::vector<float> distances;
         distances.reserve(points.size());
         for (const auto& point : points) {
@@ -641,7 +648,7 @@ std::vector<float> computePlaneDistances(const std::vector<Point3D>& points,
             float dist = std::abs((p_vec - centroid).dot(normal));
             distances.push_back(dist);
         }
-        std::cout << "✅ [CPU] Plane distance computation completed successfully" << std::endl;
+        std::cout << "[CPU] Plane distance computation completed successfully" << std::endl;
         return distances;
     }
 }
