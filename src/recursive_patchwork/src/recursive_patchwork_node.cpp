@@ -41,7 +41,7 @@ RecursivePatchworkNode::RecursivePatchworkNode()
     
     // Create subscribers
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        input_topic_, 10,
+        input_topic_, rclcpp::SensorDataQoS(),
         std::bind(&RecursivePatchworkNode::pointCloudCallback, this, std::placeholders::_1));
     
     // Create publishers

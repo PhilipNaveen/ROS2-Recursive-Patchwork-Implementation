@@ -5,8 +5,8 @@
 We are introducing a new set of modifications to patchwork ground segmentation algorithms. Tests on spinning lidar from a car in a domestic driving situation (shown above) showed promise to detect vehicles, and this may improve object detection, tracking, and state estimation in multiagent driving. Further testing from data coming from 3 solid state lidars on a high speed IAC-AV-24 racing car showed promising results as well. 
 
 ## Creators
-- **Philip Naveen** *(dxj2ut@virginia.edu)*: Created the algorithm, evaluation, & ROS2 dev.
-- **Srinivasan Kannan** *(bff5vw@virginia.edu)*: Code testing, evaluation, & manuscript.
+- **Philip Naveen** *(dxj2ut@virginia.edu)*: Created the algorithm + initial experiments & main ROS2 developer.
+- **Srinivasan Kannan** *(bff5vw@virginia.edu)*: Large scale testing and analysis of the algorithm's runtime behaviors.
 
 ## Features
 - **Recursive Patchwork Algorithm**: Advanced ground segmentation using recursive plane fitting
