@@ -86,6 +86,19 @@ set(LIBRARY_SOURCES
     src/rosbag_loader.cpp
 )
 
+# Create CUDA kernels library first if CUDA is available
+if(CUDA_FOUND)
+    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
+    set_target_properties(cuda_kernels_lib PROPERTIES
+        POSITION_INDEPENDENT_CODE ON
+    )
+    
+    # Link CUDA kernels library with CUDA libraries
+    target_link_libraries(cuda_kernels_lib
+        ${CUDA_LIBRARIES}
+    )
+endif()
+
 # Create library
 add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
 
@@ -98,18 +111,7 @@ target_link_libraries(recursive_patchwork_lib
 if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork_lib 
         ${CUDA_LIBRARIES}
-    )
-    
-    # Add CUDA kernels as a separate library
-    add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
-    set_target_properties(cuda_kernels_lib PROPERTIES
-        POSITION_INDEPENDENT_CODE ON
-    )
-    
-    # Link CUDA kernels library against the main library to access LidarFusion functions
-    target_link_libraries(cuda_kernels_lib
-        recursive_patchwork_lib
-        ${CUDA_LIBRARIES}
+        cuda_kernels_lib
     )
 endif()
 
@@ -157,7 +159,6 @@ target_link_libraries(recursive_patchwork_node
 if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork_node 
         ${CUDA_LIBRARIES}
-        cuda_kernels_lib
     )
 endif()
 
@@ -212,7 +213,6 @@ target_link_libraries(test_recursive_patchwork
 if(CUDA_FOUND)
     target_link_libraries(test_recursive_patchwork 
         ${CUDA_LIBRARIES}
-        cuda_kernels_lib
     )
 endif()
 
@@ -226,7 +226,6 @@ target_link_libraries(test_cuda
 if(CUDA_FOUND)
     target_link_libraries(test_cuda 
         ${CUDA_LIBRARIES}
-        cuda_kernels_lib
     )
 endif()
 
