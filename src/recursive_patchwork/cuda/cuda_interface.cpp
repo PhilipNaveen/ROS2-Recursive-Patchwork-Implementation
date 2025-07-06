@@ -1,0 +1,304 @@
+#include "cuda_interface.hpp"
+#include "lidar_fusion.hpp"
+#include <iostream>
+#include <cmath>
+#include <algorithm>
+
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#include <thrust/transform.h>
+#include <thrust/remove.h>
+#include <thrust/copy.h>
+#include <thrust/functional.h>
+#include <thrust/tuple.h>
+
+// Forward declarations of CUDA kernels
+extern "C" {
+    __global__ void rotatePointsKernel(float* x, float* y, float* z, 
+                                      float cos_a, float sin_a, int n);
+    __global__ void transformPointsKernel(float* x, float* y, float* z,
+                                         float* matrix, int n);
+}
+
+// Forward declaration of Thrust functor
+struct EgoVehicleFilter;
+
+#endif // USE_CUDA
+
+namespace recursive_patchwork {
+namespace cuda {
+
+// Static member initialization
+bool CudaManager::initialized_ = false;
+bool CudaManager::available_ = false;
+
+bool CudaManager::isAvailable() {
+#ifdef USE_CUDA
+    if (!initialized_) {
+        initialize();
+    }
+    return available_;
+#else
+    return false;
+#endif
+}
+
+bool CudaManager::initialize() {
+#ifdef USE_CUDA
+    if (initialized_) {
+        return available_;
+    }
+    
+    cudaError_t error = cudaSetDevice(0);
+    if (error != cudaSuccess) {
+        std::cerr << "CUDA initialization failed: " << cudaGetErrorString(error) << std::endl;
+        available_ = false;
+    } else {
+        available_ = true;
+        std::cout << "CUDA initialized successfully" << std::endl;
+    }
+    
+    initialized_ = true;
+    return available_;
+#else
+    available_ = false;
+    initialized_ = true;
+    return false;
+#endif
+}
+
+void CudaManager::cleanup() {
+#ifdef USE_CUDA
+    if (initialized_ && available_) {
+        cudaDeviceReset();
+        available_ = false;
+        initialized_ = false;
+    }
+#endif
+}
+
+std::vector<Point3D> CudaManager::applyRotation2D(
+    const std::vector<Point3D>& points, float angle_degrees) {
+    
+#ifdef USE_CUDA
+    if (!isAvailable() || points.empty()) {
+        return LidarFusion::applyRotation2D(points, angle_degrees);
+    }
+    
+    int n = points.size();
+    float angle_rad = angle_degrees * M_PI / 180.0f;
+    float cos_a = std::cos(angle_rad);
+    float sin_a = std::sin(angle_rad);
+    
+    // Allocate device memory
+    float *d_x, *d_y, *d_z;
+    cudaMalloc(&d_x, n * sizeof(float));
+    cudaMalloc(&d_y, n * sizeof(float));
+    cudaMalloc(&d_z, n * sizeof(float));
+    
+    // Copy data to device
+    std::vector<float> x_vec, y_vec, z_vec;
+    x_vec.reserve(n);
+    y_vec.reserve(n);
+    z_vec.reserve(n);
+    
+    for (const auto& point : points) {
+        x_vec.push_back(point.x);
+        y_vec.push_back(point.y);
+        z_vec.push_back(point.z);
+    }
+    
+    cudaMemcpy(d_x, x_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_z, z_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    
+    // Launch kernel
+    int blockSize = 256;
+    int numBlocks = (n + blockSize - 1) / blockSize;
+    rotatePointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, cos_a, sin_a, n);
+    
+    // Copy results back
+    cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(y_vec.data(), d_y, n * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(z_vec.data(), d_z, n * sizeof(float), cudaMemcpyDeviceToHost);
+    
+    // Free device memory
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+    
+    // Convert back to Point3D
+    std::vector<Point3D> result;
+    result.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        result.emplace_back(x_vec[i], y_vec[i], z_vec[i]);
+    }
+    
+    return result;
+#else
+    return LidarFusion::applyRotation2D(points, angle_degrees);
+#endif
+}
+
+std::vector<Point3D> CudaManager::applyTransform(
+    const std::vector<Point3D>& points,
+    const Eigen::Matrix4f& transform_matrix) {
+    
+#ifdef USE_CUDA
+    if (!isAvailable() || points.empty()) {
+        return LidarFusion::applyTransform(points, transform_matrix);
+    }
+    
+    int n = points.size();
+    
+    // Allocate device memory
+    float *d_x, *d_y, *d_z, *d_matrix;
+    cudaMalloc(&d_x, n * sizeof(float));
+    cudaMalloc(&d_y, n * sizeof(float));
+    cudaMalloc(&d_z, n * sizeof(float));
+    cudaMalloc(&d_matrix, 16 * sizeof(float));
+    
+    // Copy data to device
+    std::vector<float> x_vec, y_vec, z_vec;
+    x_vec.reserve(n);
+    y_vec.reserve(n);
+    z_vec.reserve(n);
+    
+    for (const auto& point : points) {
+        x_vec.push_back(point.x);
+        y_vec.push_back(point.y);
+        z_vec.push_back(point.z);
+    }
+    
+    cudaMemcpy(d_x, x_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y, y_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_z, z_vec.data(), n * sizeof(float), cudaMemcpyHostToDevice);
+    
+    // Copy transformation matrix
+    std::vector<float> matrix_vec(16);
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4; ++j) {
+            matrix_vec[i * 4 + j] = transform_matrix(i, j);
+        }
+    }
+    cudaMemcpy(d_matrix, matrix_vec.data(), 16 * sizeof(float), cudaMemcpyHostToDevice);
+    
+    // Launch kernel
+    int blockSize = 256;
+    int numBlocks = (n + blockSize - 1) / blockSize;
+    transformPointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, d_matrix, n);
+    
+    // Copy results back
+    cudaMemcpy(x_vec.data(), d_x, n * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(y_vec.data(), d_y, n * sizeof(float), cudaMemcpyDeviceToHost);
+    cudaMemcpy(z_vec.data(), d_z, n * sizeof(float), cudaMemcpyDeviceToHost);
+    
+    // Free device memory
+    cudaFree(d_x);
+    cudaFree(d_y);
+    cudaFree(d_z);
+    cudaFree(d_matrix);
+    
+    // Convert back to Point3D
+    std::vector<Point3D> result;
+    result.reserve(n);
+    for (int i = 0; i < n; ++i) {
+        result.emplace_back(x_vec[i], y_vec[i], z_vec[i]);
+    }
+    
+    return result;
+#else
+    return LidarFusion::applyTransform(points, transform_matrix);
+#endif
+}
+
+std::vector<Point3D> CudaManager::removeEgoVehicle(
+    const std::vector<Point3D>& points, float radius) {
+    
+#ifdef USE_CUDA
+    if (!isAvailable() || points.empty()) {
+        return LidarFusion::removeEgoVehicle(points, radius);
+    }
+    
+    // Use Thrust for efficient filtering
+    thrust::host_vector<float> x_vec, y_vec, z_vec;
+    x_vec.reserve(points.size());
+    y_vec.reserve(points.size());
+    z_vec.reserve(points.size());
+    
+    for (const auto& point : points) {
+        x_vec.push_back(point.x);
+        y_vec.push_back(point.y);
+        z_vec.push_back(point.z);
+    }
+    
+    // Copy to device
+    thrust::device_vector<float> d_x = x_vec;
+    thrust::device_vector<float> d_y = y_vec;
+    thrust::device_vector<float> d_z = z_vec;
+    
+    // Create tuple vector for filtering
+    thrust::device_vector<thrust::tuple<float, float, float>> d_points(points.size());
+    thrust::transform(d_x.begin(), d_x.end(), d_y.begin(), d_z.begin(), d_points.begin(),
+                     thrust::make_tuple<float, float, float>);
+    
+    // Filter using Thrust
+    EgoVehicleFilter filter(radius);
+    auto new_end = thrust::remove_if(d_points.begin(), d_points.end(), filter);
+    d_points.erase(new_end, d_points.end());
+    
+    // Copy filtered results back
+    std::vector<Point3D> result;
+    result.reserve(d_points.size());
+    
+    thrust::host_vector<thrust::tuple<float, float, float>> h_points = d_points;
+    for (const auto& tuple : h_points) {
+        result.emplace_back(thrust::get<0>(tuple), thrust::get<1>(tuple), thrust::get<2>(tuple));
+    }
+    
+    return result;
+#else
+    return LidarFusion::removeEgoVehicle(points, radius);
+#endif
+}
+
+// Wrapper functions that automatically choose GPU or CPU implementation
+namespace ops {
+
+std::vector<Point3D> applyRotation2D(
+    const std::vector<Point3D>& points, float angle_degrees) {
+    
+    if (CudaManager::isAvailable()) {
+        return CudaManager::applyRotation2D(points, angle_degrees);
+    } else {
+        return LidarFusion::applyRotation2D(points, angle_degrees);
+    }
+}
+
+std::vector<Point3D> applyTransform(
+    const std::vector<Point3D>& points,
+    const Eigen::Matrix4f& transform_matrix) {
+    
+    if (CudaManager::isAvailable()) {
+        return CudaManager::applyTransform(points, transform_matrix);
+    } else {
+        return LidarFusion::applyTransform(points, transform_matrix);
+    }
+}
+
+std::vector<Point3D> removeEgoVehicle(
+    const std::vector<Point3D>& points, float radius) {
+    
+    if (CudaManager::isAvailable()) {
+        return CudaManager::removeEgoVehicle(points, radius);
+    } else {
+        return LidarFusion::removeEgoVehicle(points, radius);
+    }
+}
+
+} // namespace ops
+
+} // namespace cuda
+} // namespace recursive_patchwork 
