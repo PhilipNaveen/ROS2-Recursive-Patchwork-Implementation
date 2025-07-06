@@ -7,6 +7,7 @@
 #include <thrust/functional.h>
 #include <thrust/tuple.h>
 #include <vector>
+#include <cstdio>
 
 // CUDA kernel for 2D rotation
 __global__ void rotatePointsKernel(float* x, float* y, float* z, 
@@ -44,20 +45,26 @@ __global__ void transformPointsKernel(float* x, float* y, float* z,
 }
 
 // Wrapper functions that can be called from C++
-extern "C" {
-    void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
-                           float cos_a, float sin_a, int n) {
-        int blockSize = 256;
-        int numBlocks = (n + blockSize - 1) / blockSize;
-        rotatePointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, cos_a, sin_a, n);
-        cudaDeviceSynchronize();
+void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
+                       float cos_a, float sin_a, int n) {
+    int blockSize = 256;
+    int numBlocks = (n + blockSize - 1) / blockSize;
+    rotatePointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, cos_a, sin_a, n);
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("CUDA error in rotatePointsKernel: %s\n", cudaGetErrorString(error));
     }
+    cudaDeviceSynchronize();
+}
 
-    void cuda_transform_points(float* d_x, float* d_y, float* d_z,
-                              float* d_matrix, int n) {
-        int blockSize = 256;
-        int numBlocks = (n + blockSize - 1) / blockSize;
-        transformPointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, d_matrix, n);
-        cudaDeviceSynchronize();
+void cuda_transform_points(float* d_x, float* d_y, float* d_z,
+                          float* d_matrix, int n) {
+    int blockSize = 256;
+    int numBlocks = (n + blockSize - 1) / blockSize;
+    transformPointsKernel<<<numBlocks, blockSize>>>(d_x, d_y, d_z, d_matrix, n);
+    cudaError_t error = cudaGetLastError();
+    if (error != cudaSuccess) {
+        printf("CUDA error in transformPointsKernel: %s\n", cudaGetErrorString(error));
     }
+    cudaDeviceSynchronize();
 } 

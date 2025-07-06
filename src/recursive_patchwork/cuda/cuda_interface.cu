@@ -15,12 +15,10 @@
 #include <thrust/tuple.h>
 
 // Forward declarations of CUDA wrapper functions
-extern "C" {
-    void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
-                           float cos_a, float sin_a, int n);
-    void cuda_transform_points(float* d_x, float* d_y, float* d_z,
-                              float* d_matrix, int n);
-}
+void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
+                       float cos_a, float sin_a, int n);
+void cuda_transform_points(float* d_x, float* d_y, float* d_z,
+                          float* d_matrix, int n);
 
 #endif // USE_CUDA
 

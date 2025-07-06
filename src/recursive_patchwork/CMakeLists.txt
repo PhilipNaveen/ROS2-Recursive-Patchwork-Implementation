@@ -25,6 +25,9 @@ if(CUDA_FOUND)
     # This avoids GPU detection issues at build time
     set(CMAKE_CUDA_ARCHITECTURES "60;70;75;80;86")
     
+    # Add CUDA compiler flags to suppress Eigen warnings
+    set(CMAKE_CUDA_FLAGS "${CMAKE_CUDA_FLAGS} --expt-relaxed-constexpr")
+    
     add_definitions(-DUSE_CUDA)
     
     # Find Thrust (usually comes with CUDA)
@@ -87,7 +90,6 @@ add_library(recursive_patchwork_lib ${LIBRARY_SOURCES})
 if(CUDA_FOUND)
     add_library(cuda_kernels_lib ${CUDA_KERNEL_SOURCES})
     set_target_properties(cuda_kernels_lib PROPERTIES
-        CUDA_SEPARABLE_COMPILATION ON
         POSITION_INDEPENDENT_CODE ON
     )
 endif()
