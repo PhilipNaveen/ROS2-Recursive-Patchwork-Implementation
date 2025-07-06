@@ -40,10 +40,8 @@ RecursivePatchworkNode::RecursivePatchworkNode()
     processor_ = std::make_unique<RecursivePatchwork>(config);
     
     // Create subscribers
-    rclcpp::QoS qos(10);
-    qos.reliability(rclcpp::ReliabilityPolicy::BestEffort);
     point_cloud_sub_ = this->create_subscription<sensor_msgs::msg::PointCloud2>(
-        input_topic_, qos,
+        input_topic_, rclcpp::SensorDataQoS(),
         std::bind(&RecursivePatchworkNode::pointCloudCallback, this, std::placeholders::_1));
     
     // Create publishers
