@@ -8,11 +8,13 @@
 #include <thrust/tuple.h>
 #include <vector>
 
-// Include the kernels
-#include "cuda_kernels.cu"
-
-// Forward declarations
+// Forward declarations of CUDA kernels
 extern "C" {
+    __global__ void rotatePointsKernel(float* x, float* y, float* z, 
+                                      float cos_a, float sin_a, int n);
+    __global__ void transformPointsKernel(float* x, float* y, float* z,
+                                         float* matrix, int n);
+    
     // Wrapper functions that can be called from C++
     void cuda_rotate_points(float* d_x, float* d_y, float* d_z, 
                            float cos_a, float sin_a, int n);
