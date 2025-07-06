@@ -1,4 +1,5 @@
 #include "lidar_fusion.hpp"
+#include "cuda_interface.hpp"
 #include <algorithm>
 #include <cmath>
 #include <iostream>
@@ -95,12 +96,12 @@ std::vector<Point3D> LidarFusion::processSingleLidar(
     // Apply rotation if needed
     std::vector<Point3D> rotated_points = points;
     if (std::abs(config.rotation_angle) > 1e-6f) {
-        rotated_points = applyRotation2D(points, config.rotation_angle);
+        rotated_points = cuda::ops::applyRotation2D(points, config.rotation_angle);
         std::cout << "LiDAR " << config.lidar_id << ": Applied " << config.rotation_angle << "° rotation" << std::endl;
     }
     
     // Remove ego vehicle
-    auto filtered_points = removeEgoVehicle(rotated_points, config.ego_radius);
+    auto filtered_points = cuda::ops::removeEgoVehicle(rotated_points, config.ego_radius);
     
     return filtered_points;
 }
