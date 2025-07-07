@@ -109,46 +109,46 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
                                                       float mean_dist, int depth) {
     if (patch_points.size() < 3 || depth > config_.max_split_depth) {
         return std::vector<bool>(patch_points.size(), false);
-    }
+    } // 1
     
     // Enforce minimum spatial area to stop splitting
-    float x_min = std::numeric_limits<float>::max(), x_max = -std::numeric_limits<float>::max();
-    float y_min = std::numeric_limits<float>::max(), y_max = -std::numeric_limits<float>::max();
+    float x_min = std::numeric_limits<float>::max(), x_max = -std::numeric_limits<float>::max(); //1
+    float y_min = std::numeric_limits<float>::max(), y_max = -std::numeric_limits<float>::max();//1
     
-    for (const auto& point : patch_points) {
+    for (const auto& point : patch_points) { //O(n)
         x_min = std::min(x_min, point.x);
         x_max = std::max(x_max, point.x);
         y_min = std::min(y_min, point.y);
         y_max = std::max(y_max, point.y);
     }
     
-    float area = (x_max - x_min) * (y_max - y_min);
-    if (area < 25.0f && depth > 0) {
+    float area = (x_max - x_min) * (y_max - y_min); //O(1)
+    if (area < 25.0f && depth > 0) { //O(1)
         return std::vector<bool>(patch_points.size(), true);
     }
     
     // Check if points are already flat
-    float z_min = std::numeric_limits<float>::max(), z_max = -std::numeric_limits<float>::max();
-    for (const auto& point : patch_points) {
+    float z_min = std::numeric_limits<float>::max(), z_max = -std::numeric_limits<float>::max(); //O(1)
+    for (const auto& point : patch_points) { //O(n)
         z_min = std::min(z_min, point.z);
         z_max = std::max(z_max, point.z);
     }
     
-    if ((z_max - z_min) < 0.05f && patch_points.size() > 10) {
+    if ((z_max - z_min) < 0.05f && patch_points.size() > 10) { //O(1)
         return std::vector<bool>(patch_points.size(), true);
     }
     
     // Extract Z values for seed selection
-    std::vector<float> z_values;
-    z_values.reserve(patch_points.size());
-    for (const auto& point : patch_points) {
+    std::vector<float> z_values;//O(1)
+    z_values.reserve(patch_points.size()); //O(1)
+    for (const auto& point : patch_points) { //O(n)
         z_values.push_back(point.z);
     }
     
-    float rel_dist = mean_dist / config_.filtering_radius;
-    float z_th;
+    float rel_dist = mean_dist / config_.filtering_radius; //O(1)
+    float z_th; //O(1)
     
-    if (config_.adaptive_seed_height) {
+    if (config_.adaptive_seed_height) { //O(1)
         z_th = config_.sensor_height + 0.2f * rel_dist;
     } else {
         // Use 10th percentile
@@ -159,8 +159,8 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
     }
     
     // Create seed mask
-    std::vector<bool> seed_mask(patch_points.size(), false);
-    for (size_t i = 0; i < patch_points.size(); ++i) {
+    std::vector<bool> seed_mask(patch_points.size(), false); //O(1)
+    for (size_t i = 0; i < patch_points.size(); ++i) { //O(n)
         if (z_values[i] < z_th) {
             seed_mask[i] = true;
         }
@@ -168,40 +168,40 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
     
     // If not enough seeds, use lowest points
     size_t seed_count = std::count(seed_mask.begin(), seed_mask.end(), true);
-    if (seed_count < 3) {
+    if (seed_count < 3) { //O(1)
         std::vector<size_t> indices(patch_points.size());
         std::iota(indices.begin(), indices.end(), 0);
         std::partial_sort(indices.begin(), indices.begin() + 3, indices.end(),
                          [&z_values](size_t a, size_t b) { return z_values[a] < z_values[b]; });
         
-        seed_mask.assign(patch_points.size(), false);
-        for (size_t i = 0; i < 3; ++i) {
+        seed_mask.assign(patch_points.size(), false); //O(n)
+        for (size_t i = 0; i < 3; ++i) { //O(1)
             seed_mask[indices[i]] = true;
         }
     }
     
     // Iterative plane fitting
     std::vector<bool> ground_mask = seed_mask;
-    for (int iter = 0; iter < config_.max_iter; ++iter) {
+    for (int iter = 0; iter < config_.max_iter; ++iter) { // Assume an O(n) iterations
         // Extract ground points
         std::vector<Point3D> ground_points;
         ground_points.reserve(patch_points.size());
-        for (size_t i = 0; i < patch_points.size(); ++i) {
-            if (ground_mask[i]) {
+        for (size_t i = 0; i < patch_points.size(); ++i) { // Assume an O(n) iterations
+            if (ground_mask[i]) { // O(1) check
                 ground_points.push_back(patch_points[i]);
             }
         }
         
-        if (ground_points.size() < 3) break;
+        if (ground_points.size() < 3) break; //O(1) check
         
         // Fit plane
         auto plane_result = fitPlanePCA(ground_points);
         
         // Compute distances to plane
-        std::vector<bool> new_mask(patch_points.size(), false);
-        float threshold = config_.th_dist * (1.0f + 0.2f * rel_dist);
+        std::vector<bool> new_mask(patch_points.size(), false); //O(1)
+        float threshold = config_.th_dist * (1.0f + 0.2f * rel_dist); //O(1)
         
-        for (size_t i = 0; i < patch_points.size(); ++i) {
+        for (size_t i = 0; i < patch_points.size(); ++i) { //O(n)
             const auto& point = patch_points[i];
             Eigen::Vector3f p_vec(point.x, point.y, point.z);
             float dist = std::abs((p_vec - plane_result.centroid).dot(plane_result.normal));
@@ -211,15 +211,15 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         }
         
         // Check convergence
-        if (new_mask == ground_mask) break;
+        if (new_mask == ground_mask) break; //O(1)
         ground_mask = new_mask;
     }
     
     // Final plane fit for residual computation
     std::vector<Point3D> final_ground_points;
     final_ground_points.reserve(patch_points.size());
-    for (size_t i = 0; i < patch_points.size(); ++i) {
-        if (ground_mask[i]) {
+    for (size_t i = 0; i < patch_points.size(); ++i) { //O(n^2)
+        if (ground_mask[i]) { //O(1)
             final_ground_points.push_back(patch_points[i]);
         }
     }
@@ -227,32 +227,32 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
     auto final_plane = fitPlanePCA(final_ground_points);
     
     // Decide whether to split
-    float split_threshold = config_.th_dist * (1.0f + 1.5f * depth);
-    size_t min_patch_size = 50 + 10 * depth;
+    float split_threshold = config_.th_dist * (1.0f + 1.5f * depth); //O(1)
+    size_t min_patch_size = 50 + 10 * depth; //O(1)
     
-    if (final_plane.residual > split_threshold && depth < config_.max_split_depth && 
+    if (final_plane.residual > split_threshold && depth < config_.max_split_depth &&  //O(1)
         patch_points.size() >= min_patch_size) {
         
         // Split along axis with higher variance
         float var_x = 0.0f, var_y = 0.0f;
         Eigen::Vector3f centroid = PointCloudProcessor::computeCentroid(patch_points);
         
-        for (const auto& point : patch_points) {
-            float dx = point.x - centroid(0);
+        for (const auto& point : patch_points) { //O(n)
+            float dx = point.x - centroid(0); //O(1) for all lines below
             float dy = point.y - centroid(1);
             var_x += dx * dx;
             var_y += dy * dy;
         }
-        var_x /= patch_points.size();
+        var_x /= patch_points.size(); //O(1) for the next few lines
         var_y /= patch_points.size();
         
         int split_axis = (var_x > var_y) ? 0 : 1;
         float median_val;
         
-        if (split_axis == 0) {
+        if (split_axis == 0) { //O(1)
             std::vector<float> x_vals;
             x_vals.reserve(patch_points.size());
-            for (const auto& point : patch_points) {
+            for (const auto& point : patch_points) { //O(n)
                 x_vals.push_back(point.x);
             }
             std::sort(x_vals.begin(), x_vals.end());
@@ -260,12 +260,12 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         } else {
             std::vector<float> y_vals;
             y_vals.reserve(patch_points.size());
-            for (const auto& point : patch_points) {
+            for (const auto& point : patch_points) { //O(n)
                 y_vals.push_back(point.y);
             }
             std::sort(y_vals.begin(), y_vals.end());
             median_val = y_vals[y_vals.size() / 2];
-        }
+        } //Condition is guranteed to be O(n)
         
         // Split into left and right patches
         std::vector<Point3D> left_patch, right_patch;
@@ -282,14 +282,14 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         }
         
         // Recursive calls
-        auto left_result = fitPlaneAndSplit(left_patch, mean_dist, depth + 1);
+        auto left_result = fitPlaneAndSplit(left_patch, mean_dist, depth + 1); // 2T(n/2)
         auto right_result = fitPlaneAndSplit(right_patch, mean_dist, depth + 1);
         
         // Combine results
         std::vector<bool> result(patch_points.size(), false);
         size_t left_idx = 0, right_idx = 0;
         
-        for (const auto& point : patch_points) {
+        for (const auto& point : patch_points) { //O(n)
             float val = (split_axis == 0) ? point.x : point.y;
             if (val <= median_val) {
                 result[left_idx] = left_result[left_idx];
