@@ -319,16 +319,16 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     // Compute distances and filter by radius
     std::vector<float> distances;
     distances.reserve(cleaned_points.size());
-    for (const auto& point : cleaned_points) {
+    for (const auto& point : cleaned_points) {//O(n)
         distances.push_back(computeDistance2D(point));
     }
     
-    std::vector<Point3D> points_zone;
+    std::vector<Point3D> points_zone; // Assuming memory allocation is constant time
     std::vector<float> d_zone;
     points_zone.reserve(cleaned_points.size());
     d_zone.reserve(cleaned_points.size());
     
-    for (size_t i = 0; i < cleaned_points.size(); ++i) {
+    for (size_t i = 0; i < cleaned_points.size(); ++i) { //O(n)
         if (distances[i] <= config_.filtering_radius) {
             points_zone.push_back(cleaned_points[i]);
             d_zone.push_back(distances[i]);
@@ -344,7 +344,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     int num_rings = 8;
     std::vector<float> ring_edges(num_rings + 1);
     
-    for (int i = 0; i <= num_rings; ++i) {
+    for (int i = 0; i <= num_rings; ++i) { //O(r) 
         ring_edges[i] = r_min * std::pow(r_max / r_min, static_cast<float>(i) / num_rings);
     }
     
@@ -353,7 +353,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     // Compute angles
     std::vector<float> angles;
     angles.reserve(points_zone.size());
-    for (const auto& point : points_zone) {
+    for (const auto& point : points_zone) { //O(n)
         float angle = std::atan2(point.y, point.x);
         if (angle < 0) angle += 2.0f * M_PI;
         angles.push_back(angle);
@@ -362,10 +362,10 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     std::vector<bool> is_ground_zone(points_zone.size(), false);
     
     // Process each ring-sector patch
-    for (int ring_idx = 0; ring_idx < num_rings; ++ring_idx) {
+    for (int ring_idx = 0; ring_idx < num_rings; ++ring_idx) { // O(r)
         float r0 = ring_edges[ring_idx], r1 = ring_edges[ring_idx + 1];
         
-        for (int sector_idx = 0; sector_idx < config_.num_sectors; ++sector_idx) {
+        for (int sector_idx = 0; sector_idx < config_.num_sectors; ++sector_idx) { // O(m) where m is the number of sectors
             float a0 = sector_idx * sector_angle, a1 = (sector_idx + 1) * sector_angle;
             
             // Find points in this patch
@@ -374,7 +374,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
             patch_points.reserve(points_zone.size() / (num_rings * config_.num_sectors));
             patch_indices.reserve(points_zone.size() / (num_rings * config_.num_sectors));
             
-            for (size_t i = 0; i < points_zone.size(); ++i) {
+            for (size_t i = 0; i < points_zone.size(); ++i) { // O(n)
                 if (d_zone[i] >= r0 && d_zone[i] < r1 && 
                     angles[i] >= a0 && angles[i] < a1) {
                     patch_points.push_back(points_zone[i]);
@@ -408,7 +408,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     ground_points.reserve(points_zone.size());
     non_ground_points.reserve(points_zone.size());
     
-    for (size_t i = 0; i < points_zone.size(); ++i) {
+    for (size_t i = 0; i < points_zone.size(); ++i) { //O(n)
         if (is_ground_zone[i]) {
             ground_points.push_back(points_zone[i]);
         } else {
@@ -417,7 +417,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
     }
     
     // Add points outside filtering radius to non-ground
-    for (size_t i = 0; i < cleaned_points.size(); ++i) {
+    for (size_t i = 0; i < cleaned_points.size(); ++i) { //O(n)
         if (distances[i] > config_.filtering_radius) {
             non_ground_points.push_back(cleaned_points[i]);
         }
@@ -428,7 +428,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
               << ", Non-ground points: " << non_ground_points.size() << std::endl;
     
     return {ground_points, non_ground_points};
-}
+} // T(n)=O(rmn+5n)
 
 std::vector<Point3D> RecursivePatchwork::sampleGroundAndObstacles(
     const std::vector<Point3D>& points, float target_height, float base_tol) {
