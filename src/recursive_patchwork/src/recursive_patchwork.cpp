@@ -213,12 +213,12 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         // Check convergence
         if (new_mask == ground_mask) break; //O(1)
         ground_mask = new_mask;
-    }
+    } //O(n^2)
     
     // Final plane fit for residual computation
     std::vector<Point3D> final_ground_points;
     final_ground_points.reserve(patch_points.size());
-    for (size_t i = 0; i < patch_points.size(); ++i) { //O(n^2)
+    for (size_t i = 0; i < patch_points.size(); ++i) { //O(n)
         if (ground_mask[i]) { //O(1)
             final_ground_points.push_back(patch_points[i]);
         }
@@ -272,7 +272,7 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         left_patch.reserve(patch_points.size() / 2);
         right_patch.reserve(patch_points.size() / 2);
         
-        for (const auto& point : patch_points) {
+        for (const auto& point : patch_points) { //O(n)
             float val = (split_axis == 0) ? point.x : point.y;
             if (val <= median_val) {
                 left_patch.push_back(point);
@@ -282,7 +282,7 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
         }
         
         // Recursive calls
-        auto left_result = fitPlaneAndSplit(left_patch, mean_dist, depth + 1); // 2T(n/2)
+        auto left_result = fitPlaneAndSplit(left_patch, mean_dist, depth + 1); // T(n/2)
         auto right_result = fitPlaneAndSplit(right_patch, mean_dist, depth + 1);
         
         // Combine results
@@ -304,7 +304,7 @@ std::vector<bool> RecursivePatchwork::fitPlaneAndSplit(const std::vector<Point3D
     }
     
     return ground_mask;
-}
+} // Final Formula: T(n)= 2T(n/2)+10n+n^2 // Ignoring the constants now, if it gets to that point then we can deal with it
 
 std::pair<std::vector<Point3D>, std::vector<Point3D>> 
 RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
