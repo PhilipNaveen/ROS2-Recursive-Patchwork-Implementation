@@ -71,7 +71,7 @@ std::vector<Point3D> RecursivePatchwork::removeEgoVehicle(const std::vector<Poin
     } // O(n^{2}logn) or O(n)
     
     return filtered_points;
-}
+} // O(n)
 
 RecursivePatchwork::PlaneFitResult RecursivePatchwork::fitPlanePCA(const std::vector<Point3D>& points) {
     if (points.size() < 3) {
@@ -392,7 +392,7 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
             mean_dist /= patch_indices.size();
             
             // Apply recursive plane fitting
-            auto ground_mask = fitPlaneAndSplit(patch_points, mean_dist);
+            auto ground_mask = fitPlaneAndSplit(patch_points, mean_dist); // T(n)= 2T(n/2)+10n+n^2
             
             // Mark ground points
             for (size_t i = 0; i < patch_indices.size(); ++i) {
@@ -428,20 +428,20 @@ RecursivePatchwork::filterGroundPoints(const std::vector<Point3D>& points) {
               << ", Non-ground points: " << non_ground_points.size() << std::endl;
     
     return {ground_points, non_ground_points};
-} // T(n)=O(rmn+5n)
+} // T(n)=O(rmT(fitPlaneSplit)+5n)
 
 std::vector<Point3D> RecursivePatchwork::sampleGroundAndObstacles(
     const std::vector<Point3D>& points, float target_height, float base_tol) {
     
     // First, separate ground and non-ground points
-    auto [ground_points, non_ground_points] = filterGroundPoints(points);
+    auto [ground_points, non_ground_points] = filterGroundPoints(points); // T(n)=O(rmT(fitPlaneSplit)+5n)
     
-    if (non_ground_points.empty()) {
+    if (non_ground_points.empty()) { // O(1)
         return ground_points;
     }
     
     // Remove ego vehicle from non-ground points
-    non_ground_points = removeEgoVehicle(non_ground_points, 2.5f);
+    non_ground_points = removeEgoVehicle(non_ground_points, 2.5f); //O(n)
     
     // Filter by target height
     std::vector<Point3D> obstacle_points;
@@ -451,22 +451,22 @@ std::vector<Point3D> RecursivePatchwork::sampleGroundAndObstacles(
         if (std::abs(point.z - target_height) <= base_tol) {
             obstacle_points.push_back(point);
         }
-    }
+    } //O(n)
     
     // Subsample ground points for context
     std::vector<Point3D> ground_sample;
     if (!ground_points.empty()) {
         size_t sample_size = std::min(static_cast<size_t>(2000), ground_points.size());
         ground_sample = PointCloudProcessor::randomSubsample(ground_points, sample_size);
-    }
+    } //O(1)
     
     // Combine ground sample and obstacle points
     std::vector<Point3D> result;
     result.reserve(ground_sample.size() + obstacle_points.size());
-    result.insert(result.end(), ground_sample.begin(), ground_sample.end());
-    result.insert(result.end(), obstacle_points.begin(), obstacle_points.end());
+    result.insert(result.end(), ground_sample.begin(), ground_sample.end());//O(g)
+    result.insert(result.end(), obstacle_points.begin(), obstacle_points.end());//O(l)
     
     return result;
-}
+}//T(n)=O(rmT(fitPlaneSplit)+6n+g+l)
 
 } // namespace recursive_patchwork 
