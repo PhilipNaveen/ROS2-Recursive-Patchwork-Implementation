@@ -1,0 +1,29 @@
+lidar_fusion_node:
+  ros__parameters:
+    # Output configuration
+    output_frame_id: "base_link"
+    fused_topic_name: "/fused_pointcloud"
+    
+    # Transform configuration
+    use_tf_static: true
+    transform_timeout: 0.1
+    min_clouds_to_fuse: 1
+    remove_ego_vehicle: true
+    
+    # LiDAR topic configuration
+    lidar_topics: ["/lidar_front", "/lidar_left", "/lidar_right"]
+    
+    # Frame IDs for each LiDAR
+    lidar_0_frame_id: "lidar_front_link"
+    lidar_1_frame_id: "lidar_left_link" 
+    lidar_2_frame_id: "lidar_right_link"
+    
+    # Target frames (usually same as output_frame_id)
+    lidar_0_target_frame: "base_link"
+    lidar_1_target_frame: "base_link"
+    lidar_2_target_frame: "base_link"
+    
+    # Ego vehicle removal radius for each LiDAR
+    lidar_0_ego_radius: 2.5
+    lidar_1_ego_radius: 2.5
+    lidar_2_ego_radius: 2.5 

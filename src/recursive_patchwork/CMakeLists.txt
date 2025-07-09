@@ -134,6 +134,9 @@ add_executable(recursive_patchwork ${MAIN_SOURCES})
 # Create ROS2 node executable
 add_executable(recursive_patchwork_node src/recursive_patchwork_node.cpp)
 
+# Create LiDAR fusion node executable
+add_executable(lidar_fusion_node src/lidar_fusion_main.cpp)
+
 # Link libraries for main executable
 target_link_libraries(recursive_patchwork
     recursive_patchwork_lib
@@ -147,8 +150,19 @@ target_link_libraries(recursive_patchwork_node
     recursive_patchwork_lib
 )
 
+# Link libraries for LiDAR fusion node executable
+target_link_libraries(lidar_fusion_node
+    ${EIGEN3_LIBRARIES}
+    ${OpenCV_LIBS}
+    ${PCL_LIBRARIES}
+    recursive_patchwork_lib
+)
+
 if(CUDA_FOUND)
     target_link_libraries(recursive_patchwork_node 
+        ${CUDA_LIBRARIES}
+    )
+    target_link_libraries(lidar_fusion_node 
         ${CUDA_LIBRARIES}
     )
 endif()
@@ -162,6 +176,17 @@ ament_target_dependencies(recursive_patchwork_node
     pcl_conversions
 )
 
+# Add ROS2 dependencies for LiDAR fusion node
+ament_target_dependencies(lidar_fusion_node
+    rclcpp
+    sensor_msgs
+    rosbag2_cpp
+    visualization_msgs
+    pcl_conversions
+    tf2_ros
+    tf2_eigen
+)
+
 # Compiler flags for main executable
 target_compile_options(recursive_patchwork PRIVATE
     -O3
@@ -173,6 +198,15 @@ target_compile_options(recursive_patchwork PRIVATE
 
 # Compiler flags for ROS2 node executable
 target_compile_options(recursive_patchwork_node PRIVATE
+    -O3
+    -march=native
+    -ffast-math
+    -Wall
+    -Wextra
+)
+
+# Compiler flags for LiDAR fusion node executable
+target_compile_options(lidar_fusion_node PRIVATE
     -O3
     -march=native
     -ffast-math
@@ -255,6 +289,7 @@ install(TARGETS
     recursive_patchwork_lib
     recursive_patchwork 
     recursive_patchwork_node
+    lidar_fusion_node
     test_recursive_patchwork
     test_cuda
     RUNTIME DESTINATION lib/${PROJECT_NAME}
