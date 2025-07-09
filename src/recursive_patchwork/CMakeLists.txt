@@ -67,6 +67,9 @@ find_package(rosbag2_cpp REQUIRED)
 find_package(visualization_msgs REQUIRED)
 find_package(pcl_conversions REQUIRED)
 find_package(PCL REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
 
 add_definitions(-DUSE_ROS2)
 
@@ -75,6 +78,7 @@ include_directories(
     ${CMAKE_CURRENT_SOURCE_DIR}/include
     ${EIGEN3_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
+    ${PCL_INCLUDE_DIRS}
 )
 
 # Source files for the library
@@ -318,8 +322,12 @@ ament_export_dependencies(
     rosbag2_cpp
     visualization_msgs
     pcl_conversions
+    tf2_ros
+    tf2_eigen
+    tf2_geometry_msgs
     Eigen3
     OpenCV
+    PCL
 )
 
 # Enable testing
